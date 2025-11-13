@@ -7,12 +7,25 @@
 
 main:
 
+# MARK: Syscalls
 
-exit:
+# syscall 10: Exit
+sys_exit:
     li $v0, 10
     syscall
 
-# MARK: Procedures
+# syscall 11: Print Character
+sys_print_char:
+    li $v0, 11
+    syscall
+    jr ra
+
+# syscall 42: random int range
+sys_rand_range:
+
+    jr ra
+
+# MARK: Graphics
 
 gfx_draw_rect:
     jr ra

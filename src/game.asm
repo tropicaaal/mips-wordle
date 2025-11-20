@@ -2,7 +2,6 @@
 imageBuffer:
 .space 0x80000   # 512 * 256 * 4 bytes
 
-
 .text
 
 .globl main
@@ -24,7 +23,6 @@ sys_print_char:
 
 # syscall 42: random int range
 sys_rand_range:
-    li $a0, 101         #0- 100 range
     li $v0, 42          #random int syscall
     syscall             #V0 gets random number
     jr ra

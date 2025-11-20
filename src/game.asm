@@ -24,7 +24,9 @@ sys_print_char:
 
 # syscall 42: random int range
 sys_rand_range:
-
+    li $a0, 101         #0- 100 range
+    li $v0, 42          #random int syscall
+    syscall             #V0 gets random number
     jr ra
 
 # MARK: Graphics

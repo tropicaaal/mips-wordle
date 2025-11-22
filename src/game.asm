@@ -1,12 +1,26 @@
 # MARK: Constants
 
+# framebuffer
 .eqv FRAMEBUFFER_WIDTH 256 # in pixels
 .eqv FRAMEBUFFER_HEIGHT 256 # in pixels
 .eqv FRAMEBUFFER_STRIDE 1024 # (FRAMEBUFFER_WIDTH * 4) in bytes
 .eqv FRAMEBUFFER_STRIDE_SHIFT 10 # 2^(x) = FRAMEBUFFER_STRIDE
 .eqv FRAMEBUFFER_SIZE 0x40000 # (FRAMEBUFFER_STRIDE * FRAMEBUFFER_HEIGHT) in bytes
 
+# game logic
 .eqv DICTIONARY_LEN 2315
+
+# user interface
+.eqv TILE_SIZE 28
+.eqv TILE_INNER_SIZE 24
+
+.eqv COLOR_WHITE 0x00ffffff
+.eqv COLOR_BLACK 0x00000000
+.eqv COLOR_LIGHT_GRAY 0x00d3d6da
+.eqv COLOR_GRAY: 0x00787c7e
+.eqv COLOR_DARK_GRAY 0x00878a8c
+.eqv COLOR_YELLOW 0x00c9b458
+.eqv COLOR_GREEN 0x0067a561
 
 # MARK: Data
 
@@ -211,70 +225,55 @@ font_table:
     .word char_asciitilde
     .word 0 # DEL (draw nothing)
 
-str1: .asciiz "ABCDEFGHIJKLMNOP"
-str2: .asciiz "QRSTUVWXYZabcde"
-str3: .asciiz "fghijklmnopqrst"
-str4: .asciiz "uvwxyz`12345678"
-str5: .asciiz "90-=,./<>?:\";'"
-str6: .asciiz "{}[]\|"
-
 # MARK: Main
 
 .text
 
 .globl main
 main:
-    # NOTE: For the time being, this main function just contains some test code for drawing functions.
-
-    li $a0, 0
-    li $a1, 206
-    li $a2, 50
-    li $a3, 50
+    # Clear display by drawing an all white rectangle the size of the framebuffer
+    li $a0, 0 # x
+    li $a1, 0 # y
+    li $a2, FRAMEBUFFER_WIDTH # w
+    li $a3, FRAMEBUFFER_HEIGHT # h
     addiu $sp, $sp, -20
-    li $t8, 0x0000FF00
-    sw $t8, 16($sp)
+    li $t0, COLOR_WHITE # color (white)
+    sw $t0, 16($sp)
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    li $a0, 50
-    li $a1, 206
-    li $a2, 50
-    li $a3, 50
+    ##########################
+    # REFERENCE TILE DRAWING #
+    ##########################
+
+    # Outer gray rectangle
+    li $a0, 10 # x
+    li $a1, 10 # y
+    li $a2, TILE_SIZE # w
+    li $a3, TILE_SIZE # h
     addiu $sp, $sp, -20
-    li $t8, 0x0000FFFF
-    sw $t8, 16($sp)
+    li $t0, COLOR_DARK_GRAY # color (gray)
+    sw $t0, 16($sp)
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    la $a0, str1
-    li $a1, 0
-    li $a2, 0
-    li $a3, 0x00FFFFFF
-    jal gfx_draw_string
+    # Inner white rectangle
+    li $a0, 12 # x + 2
+    li $a1, 12 # y + 2
+    li $a2, TILE_INNER_SIZE # TILE_SIZE - 4
+    li $a3, TILE_INNER_SIZE # TILE_SIZE - 4
+    addiu $sp, $sp, -20
+    li $t0, COLOR_WHITE
+    sw $t0, 16($sp)
+    jal gfx_draw_rect
+    addiu $sp, $sp, 20
 
-    la $a0, str2
-    li $a1, 0
-    li $a2, 24
-    li $a3, 0x00FFFFFF
-    jal gfx_draw_string
-
-    la $a0, str3
-    li $a1, 0
-    li $a2, 48
-    li $a3, 0x00FFFFFF
-    jal gfx_draw_string
-
-    la $a0, str4
-    li $a1, 0
-    li $a2, 72
-    li $a3, 0x00FFFFFF
-    jal gfx_draw_string
-
-    la $a0, str5
-    li $a1, 0
-    li $a2, 96
-    li $a3, 0x00FFFFFF
-    jal gfx_draw_string
+    # Letter
+    li $a0, 65 # 'A' in ascii
+    li $a1, 18 # x + 8
+    li $a2, 12 # y + 2
+    li $a3, COLOR_BLACK # color
+    jal gfx_draw_char
 
     j sys_exit
 
@@ -441,7 +440,7 @@ gfx_draw_string:
         lbu $t0, ($a0) # load character from string pointer
         beqz $t0, str_rtn # stop once we hit a null terminator
 
-        # Save arguments
+        # Save arguments and ra
         addiu $sp, $sp, -20
         sw $ra, 16($sp)
         sw $a3, 12($sp)
@@ -451,7 +450,7 @@ gfx_draw_string:
 
         move $a0, $t0 # character is the first argument here
         jal gfx_draw_char
-        
+         
         # Restore arguments
         lw $a0, 0($sp)
         lw $a1, 4($sp)
@@ -466,6 +465,12 @@ gfx_draw_string:
         j str_loop
 
     str_rtn:
+        jr $ra
+
+gfx_draw_tile:
+    # TODO
+
+    tile_rtn:
         jr $ra
 
 gfx_draw_board:

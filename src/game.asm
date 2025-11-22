@@ -17,10 +17,15 @@
 .eqv COLOR_WHITE 0x00ffffff
 .eqv COLOR_BLACK 0x00000000
 .eqv COLOR_LIGHT_GRAY 0x00d3d6da
-.eqv COLOR_GRAY: 0x00787c7e
+.eqv COLOR_GRAY 0x00787c7e
 .eqv COLOR_DARK_GRAY 0x00878a8c
 .eqv COLOR_YELLOW 0x00c9b458
 .eqv COLOR_GREEN 0x0067a561
+
+.eqv TILE_EMPTY 0
+.eqv TILE_GRAY 1
+.eqv TILE_YELLOW 2
+.eqv TILE_GREEN 3
 
 # MARK: Data
 
@@ -242,6 +247,12 @@ main:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
+    li $a0, 65
+    li $a1, 10
+    li $a2, 10
+    li $a3, 0
+    jal gfx_draw_tile
+
     ##########################
     # REFERENCE TILE DRAWING #
     ##########################
@@ -393,14 +404,14 @@ gfx_draw_char:
         beq $t2, $zero, char_rtn
 
         # Load one 16-bit row bitmap
-        lh $t3, ($t1) # bitmap mask for this row
+        lhu $t3, ($t1) # bitmap mask for this row
         addiu $t1, $t1, 4 # next bitmap row
         li $t5, 16 # remaining pixels on row
 
         move $t4, $a2 # t4 = write pointer for this row
 
         bit_loop:
-            beq $t5, $zero, next_row
+            beqz $t5, next_row
 
             # Extract MSB (bit 15). If set → draw pixel
             andi $t6, $t3, 0x8000
@@ -467,11 +478,16 @@ gfx_draw_string:
     str_rtn:
         jr $ra
 
+# Draws a single letter tile to the framebuffer.
+#
+# Arguments:
+#   $a0: letter (ASCII character byte)
+#   $a1: x
+#   $a2: y
+#   $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GRAY, 2 = TILE_YELLOW, 3 = TILE_GREEN
 gfx_draw_tile:
     # TODO
-
-    tile_rtn:
-        jr $ra
+    jr $ra
 
 gfx_draw_board:
     # top part

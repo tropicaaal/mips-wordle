@@ -477,17 +477,140 @@ gfx_draw_string:
 
     str_rtn:
         jr $ra
+        
+#------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------
 
+gfx_draw_tile:
+
+    # TODO
+    
 # Draws a single letter tile to the framebuffer.
 #
 # Arguments:
-#   $a0: letter (ASCII character byte)
-#   $a1: x
-#   $a2: y
-#   $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GRAY, 2 = TILE_YELLOW, 3 = TILE_GREEN
-gfx_draw_tile:
-    # TODO
-    jr $ra
+# $a0: letter (ASCII character byte)
+# $a1: x
+# $a2: y
+# $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GRAY, 2 = TILE_YELLOW, 3 = TILE_GREEN
+
+    # Save ra and arguments
+    addiu $sp, $sp, -24
+    sw    $ra, 20($sp)
+    sw    $a0, 0($sp)     # letter
+    sw    $a1, 4($sp)     # x
+    sw    $a2, 8($sp)     # y
+    sw    $a3, 12($sp)    # type
+
+    lw    $t0, 12($sp)    # type
+
+    
+    # TYPE 0: TILE_EMPTY --- border + inner white, no char
+    
+    li    $t1, TILE_EMPTY
+    beq   $t0, $t1, tile_type_empty
+
+   
+    # TYPES 1–3: solid colored tile + white letter
+    # choose fill color in $t2
+    
+    li    $t1, TILE_GRAY
+    beq   $t0, $t1, tile_type_gray
+
+    li    $t1, TILE_YELLOW
+    beq   $t0, $t1, tile_type_yellow
+
+    li    $t1, TILE_GREEN
+    beq   $t0, $t1, tile_type_green
+
+    # Unknown type: just treat as empty
+    j     tile_type_empty
+
+tile_type_gray:
+    li    $t2, COLOR_GRAY
+    j     tile_draw_solid
+
+tile_type_yellow:
+    li    $t2, COLOR_YELLOW
+    j     tile_draw_solid
+
+tile_type_green:
+    li    $t2, COLOR_GREEN
+    j     tile_draw_solid
+
+
+
+# Draw TILE_EMPTY: border (dark gray) + inner white
+
+tile_type_empty:
+
+    # Outer gray rectangle
+    li $a0, 10 # x
+    li $a1, 10 # y
+    li $a2, TILE_SIZE # w
+    li $a3, TILE_SIZE # h
+    addiu $sp, $sp, -20
+    li $t0, COLOR_DARK_GRAY # color (gray)
+    sw $t0, 16($sp)
+    jal gfx_draw_rect
+    addiu $sp, $sp, 20
+
+    # Inner white rectangle
+    li $a0, 12 # x + 2
+    li $a1, 12 # y + 2
+    li $a2, TILE_INNER_SIZE # TILE_SIZE - 4
+    li $a3, TILE_INNER_SIZE # TILE_SIZE - 4
+    addiu $sp, $sp, -20
+    li $t0, COLOR_WHITE
+    sw $t0, 16($sp)
+    jal gfx_draw_rect
+    addiu $sp, $sp, 20
+
+    # For TILE_EMPTY we ignore the letter (no char drawn)
+    j     tile_done
+
+
+
+# Draw solid colored tile (types 1–3) + white letter
+
+
+tile_draw_solid:
+
+    # Draw 28x28 solid rect at (x,y) with color in $t2
+    lw    $a0, 4($sp)        # x
+    lw    $a1, 8($sp)        # y
+    li    $a2, TILE_SIZE
+    li    $a3, TILE_SIZE
+    addiu $sp, $sp, -20
+    sw    $t2, 16($sp)       # fill color
+    jal   gfx_draw_rect
+    addiu $sp, $sp, 20
+
+    # Draw the letter in white, centered horizontally
+    lw    $t6, 0($sp)        # letter
+    beqz  $t6, tile_done     # safety: no letter --- done
+
+    lw    $t4, 4($sp)        # x
+    lw    $t5, 8($sp)        # y
+    addiu $t4, $t4, 8        # x + 8 (center 16px glyph in 28px tile)
+    addiu $t5, $t5, 2        # y + 2
+
+    move  $a0, $t6           # character
+    move  $a1, $t4
+    move  $a2, $t5
+    li    $a3, COLOR_WHITE   # text color
+    jal   gfx_draw_char
+
+tile_done:
+    lw    $ra, 20($sp)
+    addiu $sp, $sp, 24
+    jr    $ra
+
+#------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------
 
 gfx_draw_board:
     # top part

@@ -238,6 +238,7 @@ font_table:
 
 cursor_x: .word 52
 cursor_y: .word 36
+cursor_index: .word 0
 
 # MARK: Main
 
@@ -256,28 +257,75 @@ main:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    jal gfx_draw_board # draw game board
+    # Draw an empty game board
+    jal gfx_draw_board
 
+    # Main game loop
     input_loop:
-        jal keyboard_poll_input # Get user input
+        jal keyboard_poll_input # Get keyboard input
 
-        # Draw tile
-        move $a0, $v0
-        lw $a1, cursor_x
-        lw $a2, cursor_y
-        li $a3, TILE_GUESS
-        jal gfx_draw_tile
+        # Handle backspace (ASCII 8)
+        li $t1, 8
+        beq $v0, $t1, handle_backspace
 
-        # Increment tile cursor position
-        lw $t0, cursor_x
-        # lw $t1, cursor_y
+        handle_character:
+            # Convert lowercase input to uppercase. This procedure returns 0 if the input is
+            # nonalphabetic, so it doubles as input validation to disallow numbers/symbols in guesses.
+            move $a0, $v0
+            jal to_ascii_uppercase
+            beqz $v0, input_loop # ignore non-alphabetic characters
 
-        addiu $t0, $t0, 31
+            lw $t0, cursor_index # cursor_index <- $v0
+            beq $t0, 5, input_loop # limit user input to 5 letters
 
-        sw $t0, cursor_x
+            # Draw tile
+            move $a0, $v0
+            lw $a1, cursor_x
+            lw $a2, cursor_y
+            li $a3, TILE_GUESS
+            jal gfx_draw_tile
 
-        j input_loop
-    
+            # Move right one tile
+
+            # cursor_index += 1
+            lw $t0, cursor_index
+            addiu $t0, $t0, 1
+            sw $t0, cursor_index
+
+            # cursor_x += 1
+            lw $t0, cursor_x
+            addiu $t0, $t0, 31
+            sw $t0, cursor_x
+
+            j input_loop # next input
+
+        handle_backspace:
+            lw $t0, cursor_index
+            beqz $t0, input_loop # if index == 0, continue
+
+
+            # Draw TILE_EMPTY at this spot
+            li $a0, 0 # no letter
+            move $a1, $t1 # x = cursor_x
+            lw $a2, cursor_y # y = cursor_y
+            li $a3, TILE_EMPTY
+            jal gfx_draw_tile
+
+            # Move left one tile
+            
+            # cursor_index -= 1
+            addiu $t0, $t0, -1
+            sw $t0, cursor_index
+
+            # cursor_x -= 31
+            lw $t1, cursor_x
+            addiu $t1, $t1, -31
+            sw $t1, cursor_x
+
+
+            j input_loop
+
+
     j sys_exit
 
 # MARK: Syscalls
@@ -312,6 +360,29 @@ keyboard_read_data:
     # Return user input
     lbu $v0, KEYBOARD_RX_DATA_REG
     jr $ra
+
+# Validates user input by converting the input character to uppercase, or returning 0 if the
+# character is nonalphabetic.
+#
+# Arguments:
+#   $v0: Input ASCII character
+to_ascii_uppercase:
+    andi $a0, $a0, 0xDF # Convert to uppercase by setting bit 5 (char & 0b11011111)
+
+    # Validate range by checking that 'A' < char < 'Z'
+    li $t0, 'A'
+    blt $a0, $t0, not_alphabetic
+    li $t0, 'Z'
+    bgt $a0, $t0, not_alphabetic
+
+    # It's alphabetic
+    move $v0, $a0
+    jr $ra
+
+    # Return NULL (\0) if the character isn't alphabetic
+    not_alphabetic:
+        move $v0, $zero
+        jr $ra
 
 # MARK: Graphics
 
@@ -441,7 +512,8 @@ gfx_draw_char:
     char_rtn:
         jr $ra
 
-# Draws a null-terminated ASCII-encoded string of text to the given coordinate with the specified color.
+# Draws a null-terminated ASCII-encoded string of text to the given coordinate with the specified
+# color.
 #
 # Arguments:
 #   $a0: pointer to string

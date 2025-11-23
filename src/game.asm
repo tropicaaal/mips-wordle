@@ -249,53 +249,40 @@ main:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    li $a0, 'W'
-    li $a1, 10
-    li $a2, 10
-    li $a3, TILE_GREEN
-    jal gfx_draw_tile
+    li $t0, 0				#row index (0-5)
+    li $t3, 36				#starting y position
 
-    li $a0, 'O'
-    li $a1, 48
-    li $a2, 10
-    li $a3, TILE_YELLOW
-    jal gfx_draw_tile
+yy_loop:
+	li $t1, 0			#column index (0-4)	
+	li $t2, 52			#starting x position	
 
-    li $a0, 'R'
-    li $a1, 86
-    li $a2, 10
-    li $a3, TILE_GRAY
-    jal gfx_draw_tile
-
-    li $a0, 'D'
-    li $a1, 124
-    li $a2, 10
-    li $a3, TILE_GREEN
-    jal gfx_draw_tile
-
-    li $a0, 'L'
-    li $a1, 162
-    li $a2, 10
-    li $a3, TILE_YELLOW
-    jal gfx_draw_tile
-
-    li $a0, 'E'
-    li $a1, 200
-    li $a2, 10
-    li $a3, TILE_GRAY
-    jal gfx_draw_tile
-
-    li $a0, 0
-    li $a1, 200
-    li $a2, 60
-    li $a3, TILE_EMPTY
-    jal gfx_draw_tile
-
-    li $a0, 'X'
-    li $a1, 162
-    li $a2, 60
-    li $a3, TILE_GUESS
-    jal gfx_draw_tile
+xx_loop:
+	li $a0, 0			#blank letter
+	move $a1, $t2			#x-coordinate of this tile
+	move $a2, $t3		 	#y-coordinate of this tile
+	li $a3, TILE_EMPTY		#empty tile color
+	
+	addiu $sp, $sp, -16
+	sw $t2, 8($sp)			#save current x
+	sw $t3, 16($sp)			#save current y
+	sw $t0, 4($sp)			#save row counter
+	sw $t1 0($sp)			#save column counter
+	jal gfx_draw_tile
+	lw $t1, 0($sp)			#restore column index
+	lw $t0, 4($sp)			#restore column index
+	lw $t2, 8($sp)			#restore x position
+	lw $t3, 16($sp)			#restore y position
+	addiu $sp, $sp, 16
+	
+	addi $t2, $t2, 31		#move to next position for x
+	addi $t1, $t1, 1		#increment column counter
+	
+	blt $t1, 5, xx_loop		#loop over 5 columns
+	
+	addi $t3, $t3, 31		#move to next row
+	addi $t0, $t0, 1		#increment row
+	
+	blt $t0, 6, yy_loop		#loop over 6 rows
     
     j sys_exit
 
@@ -665,3 +652,4 @@ gfx_draw_frame:
     addiu $sp, $sp, 4
 
     jr $ra
+

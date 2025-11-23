@@ -236,6 +236,9 @@ font_table:
     .word char_asciitilde
     .word 0 # DEL (draw nothing)
 
+cursor_x: .word 52
+cursor_y: .word 36
+
 # MARK: Main
 
 .text
@@ -253,7 +256,27 @@ main:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    jal gfx_draw_board
+    jal gfx_draw_board # draw game board
+
+    input_loop:
+        jal keyboard_poll_input # Get user input
+
+        # Draw tile
+        move $a0, $v0
+        lw $a1, cursor_x
+        lw $a2, cursor_y
+        li $a3, TILE_GUESS
+        jal gfx_draw_tile
+
+        # Increment tile cursor position
+        lw $t0, cursor_x
+        # lw $t1, cursor_y
+
+        addiu $t0, $t0, 31
+
+        sw $t0, cursor_x
+
+        j input_loop
     
     j sys_exit
 

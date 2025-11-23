@@ -7,6 +7,10 @@
 .eqv FRAMEBUFFER_STRIDE_SHIFT 10 # 2^(x) = FRAMEBUFFER_STRIDE
 .eqv FRAMEBUFFER_SIZE 0x40000 # (FRAMEBUFFER_STRIDE * FRAMEBUFFER_HEIGHT) in bytes
 
+# MMIO
+.eqv KEYBOARD_RX_CONTROL_REG 0xFFFF0000
+.eqv KEYBOARD_RX_DATA_REG 0xFFFF0004
+
 # game logic
 .eqv DICTIONARY_LEN 2315
 
@@ -304,6 +308,19 @@ sys_print_char:
 sys_rand_range:
     li $v0, 42 # random int syscall
     syscall # V0 gets random number
+    jr $ra
+
+# MARK: Input
+
+# Spins the CPU until keyboard input is available, returning the key input by the user.
+keyboard_poll_input:
+    # Spin until ready bit is set
+    lw $t0, KEYBOARD_RX_CONTROL_REG
+    andi $t0, $t0, 0x1 # mask upper 31 bits
+    beqz $t0, keyboard_poll_input # check READY bit
+keyboard_read_data:
+    # Return user input
+    lbu $v0, KEYBOARD_RX_DATA_REG
     jr $ra
 
 # MARK: Graphics

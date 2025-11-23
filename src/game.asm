@@ -659,14 +659,3 @@ gfx_draw_board:
         add $t3, $t3, $t5
         addiu $t7, $t7, 1
         bne $t7, $t0, down_loop
-
-gfx_draw_frame:
-    # call gfx_draw_board
-    addiu $sp, $sp, -4
-    sw $ra, ($sp)
-    jal gfx_draw_board
-    lw $ra, ($sp)
-    addiu $sp, $sp, 4
-
-    jr $ra
-

@@ -23,11 +23,11 @@
 .eqv COLOR_YELLOW 0x00c9b458
 .eqv COLOR_GREEN 0x0067a561
 
-.eqv TILE_EMPTY 0
-.eqv TILE_GUESS 1
-.eqv TILE_GRAY 2
-.eqv TILE_YELLOW 3
-.eqv TILE_GREEN 4
+.eqv TILE_EMPTY 0 # Empty tile (no letter)
+.eqv TILE_GUESS 1 # Unsubmitted guess
+.eqv TILE_GRAY 2 # Letter is not in word
+.eqv TILE_YELLOW 3 # Letter is in word, incorrect position
+.eqv TILE_GREEN 4 # Correct letter at position
 
 # MARK: Data
 
@@ -492,10 +492,10 @@ gfx_draw_string:
 # Draws a single letter tile to the framebuffer.
 #
 # Arguments:
-# $a0: letter (ASCII character byte)
-# $a1: x
-# $a2: y
-# $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GUESS, 2 = TILE_GRAY, 3 = TILE_YELLOW, 4 = TILE_GREEN
+#   $a0: letter (ASCII character byte)
+#   $a1: x
+#   $a2: y
+#   $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GUESS, 2 = TILE_GRAY, 3 = TILE_YELLOW, 4 = TILE_GREEN
 gfx_draw_tile:
     # Save ra and arguments
     addiu $sp, $sp, -20

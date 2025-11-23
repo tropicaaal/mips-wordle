@@ -512,7 +512,7 @@ gfx_draw_tile:
     beq   $t0, $t1, tile_type_empty
 
    
-    # TYPES 1–3: solid colored tile + white letter
+    # TYPES 1 - 3: solid colored tile + white letter
     # choose fill color in $t2
     
     li    $t1, TILE_GRAY
@@ -572,7 +572,7 @@ tile_type_empty:
 
 
 
-# Draw solid colored tile (types 1–3) + white letter
+# Draw solid colored tile (types 1 - 3) + white letter
 
 
 tile_draw_solid:

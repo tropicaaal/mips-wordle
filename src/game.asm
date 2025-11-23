@@ -253,40 +253,7 @@ main:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    li $t0, 0				#row index (0-5)
-    li $t3, 36				#starting y position
-
-yy_loop:
-	li $t1, 0			#column index (0-4)	
-	li $t2, 52			#starting x position	
-
-xx_loop:
-	li $a0, 0			#blank letter
-	move $a1, $t2			#x-coordinate of this tile
-	move $a2, $t3		 	#y-coordinate of this tile
-	li $a3, TILE_EMPTY		#empty tile color
-	
-	addiu $sp, $sp, -16
-	sw $t2, 8($sp)			#save current x
-	sw $t3, 16($sp)			#save current y
-	sw $t0, 4($sp)			#save row counter
-	sw $t1 0($sp)			#save column counter
-	jal gfx_draw_tile
-	lw $t1, 0($sp)			#restore column index
-	lw $t0, 4($sp)			#restore column index
-	lw $t2, 8($sp)			#restore x position
-	lw $t3, 16($sp)			#restore y position
-	addiu $sp, $sp, 16
-	
-	addi $t2, $t2, 31		#move to next position for x
-	addi $t1, $t1, 1		#increment column counter
-	
-	blt $t1, 5, xx_loop		#loop over 5 columns
-	
-	addi $t3, $t3, 31		#move to next row
-	addi $t0, $t0, 1		#increment row
-	
-	blt $t0, 6, yy_loop		#loop over 6 rows
+    jal gfx_draw_board
     
     j sys_exit
 
@@ -599,63 +566,49 @@ gfx_draw_tile:
         addiu $sp, $sp, 20
         jr $ra # return
 
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-
 gfx_draw_board:
-    # top part
-    li $a0, 50       # x
-    li $a1, 50       # y
-    li $a2, 250      # width
-    li $a3, 10       # height
-    addiu $sp, $sp, -20
-    li $t8, 0x0000FF00    # color (green)
-    sw $t8, 16($sp)
-    jal gfx_draw_rect
-    addiu $sp, $sp, 20
+    li $t0, 0 # row index (0-5)
+    li $t3, 36 # starting y position
 
-    li $t0, 6          # number of rectangles
-    li $t3, 50         # y
-    li $t4, 10         # width
-    li $t5, 50         # height
-    li $t6, 50         # x increment
-    li $t7, 0	  # other loop counter
+    # save return address
+    addiu $sp, $sp, -4
+    sw $ra, 0($sp)
 
-    down_loop:
-        li $t1, 0         # loop counter
-        li $t2, 50        # starting x
+    yy_loop:
+        li $t1, 0 # column index (0-4)	
+        li $t2, 52 # starting x position
 
-    across_loop:
-        move $a0, $t2      # x
-        move $a1, $t3      # y
-        move $a2, $t4      # width
-        move $a3, $t5      # height
+        xx_loop:
+            li $a0, 0 # blank letter
+            move $a1, $t2 # x-coordinate of this tile
+            move $a2, $t3 # y-coordinate of this tile
+            li $a3, TILE_EMPTY # empty tile color
+            
+            addiu $sp, $sp, -16
+            sw $t2, 12($sp) # save current x
+            sw $t3, 8($sp) # save current y
+            sw $t0, 4($sp) # save row counter
+            sw $t1 0($sp) # save column counter
 
-        addi $sp, $sp, -20
-        li $t8, 0x0000FF00    # color (green)
-        sw $t8, 16($sp)
-        jal gfx_draw_rect
-        addiu $sp, $sp, 20
+            jal gfx_draw_tile
+            
+            lw $t1, 0($sp) # restore row index
+            lw $t0, 4($sp) # restore column index
+            lw $t3, 8($sp) # restore x position
+            lw $t2, 12($sp) # restore y position
+            addiu $sp, $sp, 16
+            
+            addi $t2, $t2, 31 # move to next position for x
+            addi $t1, $t1, 1 # increment column counter
+            
+            blt $t1, 5, xx_loop # loop over 5 columns
+            
+        addi $t3, $t3, 31 # move to next row
+        addi $t0, $t0, 1 # increment row
+        
+        blt $t0, 6, yy_loop # loop over 6 rows
 
-        add $t2, $t2, $t6  # x += 50
-        addiu $t1, $t1, 1
-        bne $t1, $t0, across_loop
-
-        #bottom part
-        li $a0,50       # x
-        add $a1, $t3, $t5       # y
-        li $a2, 260        # width
-        li $a3, 10        # height
-
-        # Save color argument and draw rectangle
-        addiu $sp, $sp, -20
-        li $t8, 0x0000FF00    # color (green)
-        sw $t8, 16($sp)
-        jal gfx_draw_rect
-        addiu $sp, $sp, 20
-
-        add $t3, $t3, $t5
-        addiu $t7, $t7, 1
-        bne $t7, $t0, down_loop
+    # restore $ra and return
+    lw $ra, 0($sp)
+    addiu $sp, $sp, 4
+    jr $ra

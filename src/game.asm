@@ -13,6 +13,7 @@
 # user interface
 .eqv TILE_SIZE 28
 .eqv TILE_INNER_SIZE 24
+.eqv TILE_GAP 3
 
 .eqv COLOR_WHITE 0x00ffffff
 .eqv COLOR_BLACK 0x00000000

@@ -23,9 +23,10 @@
 .eqv COLOR_GREEN 0x0067a561
 
 .eqv TILE_EMPTY 0
-.eqv TILE_GRAY 1
-.eqv TILE_YELLOW 2
-.eqv TILE_GREEN 3
+.eqv TILE_GUESS 1
+.eqv TILE_GRAY 2
+.eqv TILE_YELLOW 3
+.eqv TILE_GREEN 4
 
 # MARK: Data
 
@@ -247,45 +248,54 @@ main:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
 
-    li $a0, 65
+    li $a0, 'W'
     li $a1, 10
     li $a2, 10
-    li $a3, 0
+    li $a3, TILE_GREEN
     jal gfx_draw_tile
 
-    ##########################
-    # REFERENCE TILE DRAWING #
-    ##########################
+    li $a0, 'O'
+    li $a1, 48
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
 
-    # Outer gray rectangle
-    li $a0, 10 # x
-    li $a1, 10 # y
-    li $a2, TILE_SIZE # w
-    li $a3, TILE_SIZE # h
-    addiu $sp, $sp, -20
-    li $t0, COLOR_DARK_GRAY # color (gray)
-    sw $t0, 16($sp)
-    jal gfx_draw_rect
-    addiu $sp, $sp, 20
+    li $a0, 'R'
+    li $a1, 86
+    li $a2, 10
+    li $a3, TILE_GRAY
+    jal gfx_draw_tile
 
-    # Inner white rectangle
-    li $a0, 12 # x + 2
-    li $a1, 12 # y + 2
-    li $a2, TILE_INNER_SIZE # TILE_SIZE - 4
-    li $a3, TILE_INNER_SIZE # TILE_SIZE - 4
-    addiu $sp, $sp, -20
-    li $t0, COLOR_WHITE
-    sw $t0, 16($sp)
-    jal gfx_draw_rect
-    addiu $sp, $sp, 20
+    li $a0, 'D'
+    li $a1, 124
+    li $a2, 10
+    li $a3, TILE_GREEN
+    jal gfx_draw_tile
 
-    # Letter
-    li $a0, 65 # 'A' in ascii
-    li $a1, 18 # x + 8
-    li $a2, 12 # y + 2
-    li $a3, COLOR_BLACK # color
-    jal gfx_draw_char
+    li $a0, 'L'
+    li $a1, 162
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
 
+    li $a0, 'E'
+    li $a1, 200
+    li $a2, 10
+    li $a3, TILE_GRAY
+    jal gfx_draw_tile
+
+    li $a0, 0
+    li $a1, 200
+    li $a2, 60
+    li $a3, TILE_EMPTY
+    jal gfx_draw_tile
+
+    li $a0, 'X'
+    li $a1, 162
+    li $a2, 60
+    li $a3, TILE_GUESS
+    jal gfx_draw_tile
+    
     j sys_exit
 
 # MARK: Syscalls
@@ -368,7 +378,7 @@ gfx_draw_rect:
     rect_rtn:
         jr $ra
 
-# Draws a monospaced character bitmap at (x, y) with the given color. mm 
+# Draws a monospaced character bitmap at (x, y) with the given color.
 #
 # Arguments:
 #   $a0: character (ASCII)
@@ -477,135 +487,112 @@ gfx_draw_string:
 
     str_rtn:
         jr $ra
-        
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------------------------------------------
 
-gfx_draw_tile:
-
-    # TODO
-    
 # Draws a single letter tile to the framebuffer.
 #
 # Arguments:
 # $a0: letter (ASCII character byte)
 # $a1: x
 # $a2: y
-# $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GRAY, 2 = TILE_YELLOW, 3 = TILE_GREEN
-
+# $a3: tile type, 0 = TILE_EMPTY, 1 = TILE_GUESS, 2 = TILE_GRAY, 3 = TILE_YELLOW, 4 = TILE_GREEN
+gfx_draw_tile:
     # Save ra and arguments
-    addiu $sp, $sp, -24
-    sw    $ra, 20($sp)
-    sw    $a0, 0($sp)     # letter
-    sw    $a1, 4($sp)     # x
-    sw    $a2, 8($sp)     # y
-    sw    $a3, 12($sp)    # type
-
-    lw    $t0, 12($sp)    # type
-
-    
-    # TYPE 0: TILE_EMPTY --- border + inner white, no char
-    
-    li    $t1, TILE_EMPTY
-    beq   $t0, $t1, tile_type_empty
-
-   
-    # TYPES 1 - 3: solid colored tile + white letter
-    # choose fill color in $t2
-    
-    li    $t1, TILE_GRAY
-    beq   $t0, $t1, tile_type_gray
-
-    li    $t1, TILE_YELLOW
-    beq   $t0, $t1, tile_type_yellow
-
-    li    $t1, TILE_GREEN
-    beq   $t0, $t1, tile_type_green
-
-    # Unknown type: just treat as empty
-    j     tile_type_empty
-
-tile_type_gray:
-    li    $t2, COLOR_GRAY
-    j     tile_draw_solid
-
-tile_type_yellow:
-    li    $t2, COLOR_YELLOW
-    j     tile_draw_solid
-
-tile_type_green:
-    li    $t2, COLOR_GREEN
-    j     tile_draw_solid
-
-
-
-# Draw TILE_EMPTY: border (dark gray) + inner white
-
-tile_type_empty:
-
-    # Outer gray rectangle
-    li $a0, 10 # x
-    li $a1, 10 # y
-    li $a2, TILE_SIZE # w
-    li $a3, TILE_SIZE # h
     addiu $sp, $sp, -20
-    li $t0, COLOR_DARK_GRAY # color (gray)
-    sw $t0, 16($sp)
-    jal gfx_draw_rect
-    addiu $sp, $sp, 20
+    sw $ra, 16($sp) # ra
+    sw $a3, 12($sp) # type
+    sw $a2, 8($sp) # y
+    sw $a1, 4($sp) # x
+    sw $a0, 0($sp) # letter
 
-    # Inner white rectangle
-    li $a0, 12 # x + 2
-    li $a1, 12 # y + 2
-    li $a2, TILE_INNER_SIZE # TILE_SIZE - 4
-    li $a3, TILE_INNER_SIZE # TILE_SIZE - 4
-    addiu $sp, $sp, -20
-    li $t0, COLOR_WHITE
-    sw $t0, 16($sp)
-    jal gfx_draw_rect
-    addiu $sp, $sp, 20
+    # Choose codepath based on $a3 (tile type)
+    li $t0, TILE_GUESS
+    beq $a3, $t0, tile_type_guess
+    li $t0, TILE_GRAY
+    beq $a3, $t0, tile_type_gray
+    li $t0, TILE_YELLOW
+    beq $a3, $t0, tile_type_yellow
+    li $t0, TILE_GREEN
+    beq $a3, $t0, tile_type_green
+    j tile_type_empty # Unknown type: just treat as empty
 
-    # For TILE_EMPTY we ignore the letter (no char drawn)
-    j     tile_done
+    # Load appropriate colors and jump to draw handler based on type (in $a3)
+    tile_type_empty:
+        li $t0, COLOR_LIGHT_GRAY
+        j tile_draw_bordered
+    tile_type_guess:
+        li $t0, COLOR_DARK_GRAY
+        j tile_draw_bordered
+    tile_type_gray:
+        li $t0, COLOR_GRAY
+        j tile_draw_solid
+    tile_type_yellow:
+        li $t0, COLOR_YELLOW
+        j tile_draw_solid
+    tile_type_green:
+        li $t0, COLOR_GREEN
+        j tile_draw_solid
 
+    # Draw bordered tile (TILE_EMPTY, TILE_GUESS)
+    tile_draw_bordered:
+        # Outer border rectangle with color in $t2
+        move $a0, $a1 # x
+        move $a1, $a2 # y
+        li $a2, TILE_SIZE # w
+        li $a3, TILE_SIZE # h
+        addiu $sp, $sp, -20
+        sw $t0, 16($sp) # border color in $t2
+        jal gfx_draw_rect
+        addiu $sp, $sp, 20
 
+        # Inner white rectangle
+        lw $a0, 4($sp) # restore x
+        lw $a1, 8($sp) # restore y
+        addiu $a0, $a0, 2 # x + 2
+        addiu $a1, $a1, 2 # y + 2
+        li $a2, TILE_INNER_SIZE # TILE_SIZE - 4
+        li $a3, TILE_INNER_SIZE # TILE_SIZE - 4
+        addiu $sp, $sp, -20
+        li $t0, COLOR_WHITE
+        sw $t0, 16($sp)
+        jal gfx_draw_rect
+        addiu $sp, $sp, 20
 
-# Draw solid colored tile (types 1 - 3) + white letter
+        # Draw the letter in black, centered horizontally
+        lw $a0, 0($sp) # letter
+        lw $a1, 4($sp) # x
+        lw $a2, 8($sp) # y
+        addiu $a1, $a1, 8 # x + 8 (center 16px glyph in 28px tile)
+        addiu $a2, $a2, 2 # y + 2
+        li $a3, COLOR_BLACK # text color
+        jal gfx_draw_char
 
+        j tile_rtn
 
-tile_draw_solid:
+    # Draw solid colored tile + white letter (TILE_GRAY, TILE_YELLOW TILE_GREEN)
+    tile_draw_solid:
+        # Draw 28x28 solid rect at (x,y) with color in $t0
+        move $a0, $a1 # x
+        move $a1, $a2 # y
+        li $a2, TILE_SIZE
+        li $a3, TILE_SIZE
+        addiu $sp, $sp, -20
+        sw $t0, 16($sp) # fill color
+        jal gfx_draw_rect
+        addiu $sp, $sp, 20
 
-    # Draw 28x28 solid rect at (x,y) with color in $t2
-    lw    $a0, 4($sp)        # x
-    lw    $a1, 8($sp)        # y
-    li    $a2, TILE_SIZE
-    li    $a3, TILE_SIZE
-    addiu $sp, $sp, -20
-    sw    $t2, 16($sp)       # fill color
-    jal   gfx_draw_rect
-    addiu $sp, $sp, 20
+        # Draw the letter in white, centered horizontally
+        lw $a0, 0($sp) # letter
+        lw $a1, 4($sp) # x
+        lw $a2, 8($sp) # y
+        addiu $a1, $a1, 8 # x + 8 (center 16px glyph in 28px tile)
+        addiu $a2, $a2, 2 # y + 2
+        li $a3, COLOR_WHITE # text color
+        jal gfx_draw_char
 
-    # Draw the letter in white, centered horizontally
-    lw    $t6, 0($sp)        # letter
-    beqz  $t6, tile_done     # safety: no letter --- done
-
-    lw    $t4, 4($sp)        # x
-    lw    $t5, 8($sp)        # y
-    addiu $t4, $t4, 8        # x + 8 (center 16px glyph in 28px tile)
-    addiu $t5, $t5, 2        # y + 2
-
-    move  $a0, $t6           # character
-    move  $a1, $t4
-    move  $a2, $t5
-    li    $a3, COLOR_WHITE   # text color
-    jal   gfx_draw_char
-
-tile_done:
-    lw    $ra, 20($sp)
-    addiu $sp, $sp, 24
-    jr    $ra
+    tile_rtn:
+        lw $ra, 16($sp) # restore $ra
+        addiu $sp, $sp, 20
+        jr $ra # return
 
 #------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------------------------------------------------------------------------------------------

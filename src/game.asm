@@ -265,8 +265,7 @@ main:
         jal keyboard_poll_input # Get keyboard input
 
         # Handle backspace (ASCII 8)
-        li $t0, 8
-        beq $v0, $t0, handle_backspace
+        beq $v0, 8, handle_backspace
 
         handle_character:
             # Convert lowercase input to uppercase. This procedure returns 0 if the input is

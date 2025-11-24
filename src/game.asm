@@ -265,7 +265,8 @@ main:
         jal keyboard_poll_input # Get keyboard input
 
         # Handle backspace (ASCII 8)
-        beq $v0, 8, handle_backspace
+        li $t0, 8
+        beq $v0, $t0, handle_backspace
 
         handle_character:
             # Convert lowercase input to uppercase. This procedure returns 0 if the input is
@@ -302,13 +303,6 @@ main:
             lw $t0, cursor_index
             beqz $t0, input_loop # if index == 0, continue
 
-            # Draw TILE_EMPTY at this spot
-            li $a0, 0 # no letter
-            move $a1, $t1 # x = cursor_x
-            lw $a2, cursor_y # y = cursor_y
-            li $a3, TILE_EMPTY
-            jal gfx_draw_tile
-
             # Move left one tile
             
             # cursor_index -= 1
@@ -321,7 +315,14 @@ main:
             addiu $t1, $t1, -31
             sw $t1, cursor_x
 
-            j input_loop
+            # Draw TILE_EMPTY at this spot
+            li $a0, 0 # no letter
+            lw $a1, cursor_x # x = cursor_x
+            lw $a2, cursor_y # y = cursor_y
+            li $a3, TILE_EMPTY
+            jal gfx_draw_tile
+
+            j input_loop # next input
 
     j sys_exit
 

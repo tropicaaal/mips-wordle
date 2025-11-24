@@ -302,7 +302,6 @@ main:
             lw $t0, cursor_index
             beqz $t0, input_loop # if index == 0, continue
 
-
             # Draw TILE_EMPTY at this spot
             li $a0, 0 # no letter
             move $a1, $t1 # x = cursor_x
@@ -313,6 +312,7 @@ main:
             # Move left one tile
             
             # cursor_index -= 1
+            lw $t0, cursor_index
             addiu $t0, $t0, -1
             sw $t0, cursor_index
 
@@ -321,9 +321,7 @@ main:
             addiu $t1, $t1, -31
             sw $t1, cursor_x
 
-
             j input_loop
-
 
     j sys_exit
 

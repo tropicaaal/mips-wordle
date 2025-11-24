@@ -372,7 +372,7 @@ keyboard_read_data:
 # character is nonalphabetic.
 #
 # Arguments:
-#   $v0: Input ASCII character
+#   $a0: Input ASCII character
 to_ascii_uppercase:
     andi $a0, $a0, 0xDF # Convert to uppercase by setting bit 5 (char & 0b11011111)
 

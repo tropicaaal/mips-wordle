@@ -265,8 +265,7 @@ main:
         jal keyboard_poll_input # Get keyboard input
 
         # Handle backspace (ASCII 8)
-        li $t1, 8
-        beq $v0, $t1, handle_backspace
+        beq $v0, 8, handle_backspace
 
         handle_character:
             # Convert lowercase input to uppercase. This procedure returns 0 if the input is
@@ -572,14 +571,10 @@ gfx_draw_tile:
     sw $a0, 0($sp) # letter
 
     # Choose codepath based on $a3 (tile type)
-    li $t0, TILE_GUESS
-    beq $a3, $t0, tile_type_guess
-    li $t0, TILE_GRAY
-    beq $a3, $t0, tile_type_gray
-    li $t0, TILE_YELLOW
-    beq $a3, $t0, tile_type_yellow
-    li $t0, TILE_GREEN
-    beq $a3, $t0, tile_type_green
+    beq $a3, TILE_GUESS, tile_type_guess
+    beq $a3, TILE_GRAY, tile_type_gray
+    beq $a3, TILE_YELLOW, tile_type_yellow
+    beq $a3, TILE_GREEN, tile_type_green
     j tile_type_empty # Unknown type: just treat as empty
 
     # Load appropriate colors and jump to draw handler based on type (in $a3)

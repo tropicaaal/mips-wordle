@@ -326,10 +326,6 @@ main:
 
             # Don't allow enter key if the guess isn't in the dictionary
 
-            # Exit game if all guesses are exhausted
-            lw $t0, cursor_y
-            beq $t0, 191, sys_exit
-
             # Grade the current submission
             addiu $sp, $sp, -8
             li $t0, 52 # x = 52
@@ -365,6 +361,10 @@ main:
                 bne $t0, 5, check_loop
 
             addiu $sp, $sp, 8
+
+            # Exit the game if all guesses are exhausted
+            lw $t0, cursor_y
+            beq $t0, 191, sys_exit
 
             # Move down one tile
 

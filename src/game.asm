@@ -249,6 +249,7 @@ font_table:
 cursor_x: .word 52
 cursor_y: .word 36
 cursor_index: .word 0
+guess: .byte 0:5
 
 # MARK: Main
 
@@ -311,11 +312,15 @@ main:
             j input_loop # next input
 
         handle_enter:
-            lw $t0, cursor_index # cursor_index <- $t0
-            blt $t0, 5, input_loop # Don't allow enter key if the cursor isn't at the end of the board
+            # Don't allow enter key if the cursor isn't at the end of the board
+            lw $t0, cursor_index
+            blt $t0, 5, input_loop
 
+            # Don't allow enter key is guess isn't in the dictionary
+
+            # Exit game if all guesses are exhausted
             lw $t0, cursor_y
-            beq $t0, 191, sys_exit # Exit game if all guesses are exhausted
+            beq $t0, 191, sys_exit
 
             # cursor_index = 0
             li $t0, 0
@@ -390,6 +395,15 @@ keyboard_poll_input:
 keyboard_read_data:
     # Return user input
     lbu $v0, KEYBOARD_RX_DATA_REG
+    jr $ra
+
+dictionary_contains_word:
+    jr $ra
+
+word_contains_letter:
+    jr $ra
+
+word_cmp:
     jr $ra
 
 # Validates user input by converting the input character to uppercase, or returning 0 if the

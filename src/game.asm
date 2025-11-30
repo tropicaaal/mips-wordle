@@ -314,6 +314,9 @@ main:
             lw $t0, cursor_index # cursor_index <- $t0
             blt $t0, 5, input_loop # Don't allow enter key if the cursor isn't at the end of the board
 
+            lw $t0, cursor_y
+            beq $t0, 191, sys_exit # Exit game if all guesses are exhausted
+
             # cursor_index = 0
             li $t0, 0
             sw $t0, cursor_index

@@ -470,10 +470,6 @@ check_letter:
     addu $t0, $a0, $a2  # t0 = guess + position
     lbu $t3, ($t0) # t3 = guess[position]
 
-    li $v0, 11
-    move $a0, $t3
-    syscall
-
     # if equal, return TILE_COLOR_GREEN
     beq $t3, $t2, letter_correct_position
 

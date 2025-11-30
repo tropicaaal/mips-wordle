@@ -274,8 +274,10 @@ main:
     input_loop:
         jal keyboard_poll_input # Get keyboard input
 
-        # Handle backspace (ASCII 8)
-        beq $v0, 8, handle_backspace
+        beq $v0, 8, handle_backspace # Handle backspace (ASCII Backspace Control, 0x8)
+
+        # Handle enter/return
+        beq $v0, 10, handle_enter # ASCII LF Control
 
         handle_character:
             # Convert lowercase input to uppercase. This procedure returns 0 if the input is
@@ -308,6 +310,25 @@ main:
 
             j input_loop # next input
 
+        handle_enter:
+            lw $t0, cursor_index # cursor_index <- $t0
+            blt $t0, 5, input_loop # Don't allow enter key if the cursor isn't at the end of the board
+
+            # cursor_index = 0
+            li $t0, 0
+            sw $t0, cursor_index
+
+            # cursor_x = 52
+            li $t0, 52
+            sw $t0, cursor_x
+
+            # cursor_y += 31
+            lw $t0, cursor_y
+            addiu $t0, $t0, 31
+            sw $t0, cursor_y
+
+            j input_loop # next input
+
         handle_backspace:
             lw $t0, cursor_index
             beqz $t0, input_loop # if index == 0, continue
@@ -320,9 +341,9 @@ main:
             sw $t0, cursor_index
 
             # cursor_x -= 31
-            lw $t1, cursor_x
-            addiu $t1, $t1, -31
-            sw $t1, cursor_x
+            lw $t0, cursor_x
+            addiu $t0, $t0, -31
+            sw $t0, cursor_x
 
             # Draw TILE_EMPTY at this spot
             li $a0, 0 # no letter

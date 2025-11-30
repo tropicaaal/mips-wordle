@@ -258,7 +258,7 @@ answer: .word 0 # char* to dictionary
 .globl main
 main:
     # Load a random word into `answer`
-    la $t0, dictionary # FIXME: Choose random word rather than dictionary[0]
+    la $t0, dictionary # TODO: Choose random word rather than dictionary[0]
     sw $t0, answer
 
     # Clear display by drawing an all white rectangle the size of the framebuffer
@@ -279,7 +279,8 @@ main:
     input_loop:
         jal keyboard_poll_input # Get keyboard input
 
-        beq $v0, 8, handle_backspace # Handle backspace (ASCII Backspace Control, 0x8)
+        # Handle backspace
+        beq $v0, 8, handle_backspace # ASCII Backspace Control
 
         # Handle enter/return
         beq $v0, 10, handle_enter # ASCII LF Control
@@ -324,9 +325,9 @@ main:
             lw $t0, cursor_index
             blt $t0, 5, input_loop
 
-            # Don't allow enter key if the guess isn't in the dictionary
+            # TODO: Don't allow enter key if the guess isn't in the dictionary
 
-            # Grade the current submission
+            # Score the current submission
             addiu $sp, $sp, -8
             li $t0, 52 # x = 52
             sw $t0, 0($sp)
@@ -338,7 +339,7 @@ main:
                 lw $a2, 4($sp) # index
                 jal check_letter
 
-                # Draw tile based on judgement
+                # Draw tile based on letter judgement check
                 lw $t0, 4($sp) # $t0 <- index
                 sll $t0, $t0, 2 # index to offset
                 lbu $a0, guess($t0) # letter

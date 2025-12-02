@@ -22,7 +22,8 @@
 .eqv KEYBOARD_RX_DATA_REG 0xFFFF0004
 
 # game logic
-.eqv DICTIONARY_LEN 2315
+.eqv ANSWER_DICTIONARY_LEN 2315
+.eqv GUESS_DICTIONARY_LEN 10657
 
 # user interface
 .eqv TILE_SIZE 28
@@ -451,7 +452,7 @@ keyboard_poll_input:
 
 dictionary_contains_word:
     la $t0, guess_dictionary # base of dictionary
-    li $t1, DICTIONARY_LEN # number of words
+    li $t1, GUESS_DICTIONARY_LEN # number of words
     li $t2, 0 # word index
 
     dict_loop:

@@ -452,33 +452,33 @@ dictionary_contains_word:
     li   $t1, DICTIONARY_LEN    # number of words
     li   $t2, 0                 # word index
 
-dict_loop:
-    beq  $t2, $t1, not_found    # if index == length, stop
+    dict_loop:
+        beq  $t2, $t1, not_found    # if index == length, stop
 
-    li   $t3, 0                 # char index
-compare_chars:
-    lbu  $t4, guess($t3)        # guess[i]
-    lbu  $t5, 0($t0)            # dict[i]
-    bne  $t4, $t5, next_word    # mismatch → try next word
+        li   $t3, 0                 # char index
+        compare_chars:
+            lbu  $t4, guess($t3)        # guess[i]
+            lbu  $t5, 0($t0)            # dict[i]
+            bne  $t4, $t5, next_word    # mismatch → try next word
 
-    addiu $t0, $t0, 1           # advance dict pointer
-    addiu $t3, $t3, 1
-    blt  $t3, 5, compare_chars  # until i == 5
+            addiu $t0, $t0, 1           # advance dict pointer
+            addiu $t3, $t3, 1
+            blt  $t3, 5, compare_chars  # until i == 5
 
-    # matched all 5 chars
-    li   $v0, 1
-    jr   $ra
+            # matched all 5 chars
+            li   $v0, 1
+            jr   $ra
 
-next_word:
-    li   $t6, 5
-    subu $t6, $t6, $t3   # remaining chars in this word
-    addu $t0, $t0, $t6   # skip to next word
-    addiu $t2, $t2, 1    # increment word index
-    j    dict_loop
+        next_word:
+            li   $t6, 5
+            subu $t6, $t6, $t3   # remaining chars in this word
+            addu $t0, $t0, $t6   # skip to next word
+            addiu $t2, $t2, 1    # increment word index
+            j    dict_loop
 
-not_found:
-    li   $v0, 0
-    jr   $ra
+    not_found:
+        li   $v0, 0
+        jr   $ra
 
 # Checks if a letter is in the word.
 #
@@ -499,7 +499,6 @@ check_letter:
     lbu $t2, ($t1)  # t2 = answer[position]
 
     # load guess[position]
-    sll $a2, $a2, 2 # 4-byte aligned, so position *= 4
     addu $t0, $a0, $a2  # t0 = guess + position
     lbu $t3, ($t0) # t3 = guess[position]
 

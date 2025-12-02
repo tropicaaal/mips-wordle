@@ -262,9 +262,38 @@ answer: .word 0 # char* to dictionary
 
 .globl main
 main:
+#seed random generator
+    li $v0, 30        # get time syscall 
+    syscall           
+
+
+
+    move $t0, $a0     # save seed from a0 into t0
+
+    li   $a0, 0       # generator ID = 0
+    move $a1, $t0     # a1 = the seed we saved
+
+    li   $v0, 40      # syscall 40: set seed
+    syscall
+
+
+	
     # Load a random word into `answer`
-    la $t0, answer_dictionary # TODO: Choose random word rather than dictionary[0]
-    sw $t0, answer
+    li   $a0, 0                  # generator ID 0
+    li   $a1, ANSWER_DICTIONARY_LEN     # upper bound = 2315
+    li   $v0, 42                 # random int range syscall
+    syscall                      # v0 = random index
+
+    # index * 5 = byte offset
+    li   $t1, 5
+    mul  $t0, $a0, $t1
+
+    # dictionary + offset = word pointer
+    la   $t1, answer_dictionary 
+    addu $t0, $t1, $t0
+
+    # save pointer
+    sw   $t0, answer
 
     # Clear display by drawing an all white rectangle the size of the framebuffer
     li $a0, 0 # x

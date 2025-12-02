@@ -296,8 +296,8 @@ main:
             beq $t0, 5, input_loop # limit user input to 5 letters
 
             # guess[cursor_index] = char
-            sll $t0, $t0, 2
-            sw $v0, guess($t0)
+            lw $t0, cursor_index
+            sb $v0, guess($t0)
 
             # Draw tile
             move $a0, $v0
@@ -326,6 +326,9 @@ main:
             blt $t0, 5, input_loop
 
             # TODO: Don't allow enter key if the guess isn't in the dictionary
+            la $a0, guess
+            jal dictionary_contains_word
+            beqz $v0, input_loop
 
             # Score the current submission
             addiu $sp, $sp, -8
@@ -341,7 +344,6 @@ main:
 
                 # Draw tile based on letter judgement check
                 lw $t0, 4($sp) # $t0 <- index
-                sll $t0, $t0, 2 # index to offset
                 lbu $a0, guess($t0) # letter
                 lw $a1, 0($sp) # x
                 lw $a2, cursor_y # y
@@ -446,7 +448,37 @@ keyboard_poll_input:
         jr $ra
 
 dictionary_contains_word:
-    jr $ra
+    la   $t0, dictionary        # base of dictionary
+    li   $t1, DICTIONARY_LEN    # number of words
+    li   $t2, 0                 # word index
+
+dict_loop:
+    beq  $t2, $t1, not_found    # if index == length, stop
+
+    li   $t3, 0                 # char index
+compare_chars:
+    lbu  $t4, guess($t3)        # guess[i]
+    lbu  $t5, 0($t0)            # dict[i]
+    bne  $t4, $t5, next_word    # mismatch → try next word
+
+    addiu $t0, $t0, 1           # advance dict pointer
+    addiu $t3, $t3, 1
+    blt  $t3, 5, compare_chars  # until i == 5
+
+    # matched all 5 chars
+    li   $v0, 1
+    jr   $ra
+
+next_word:
+    li   $t6, 5
+    subu $t6, $t6, $t3   # remaining chars in this word
+    addu $t0, $t0, $t6   # skip to next word
+    addiu $t2, $t2, 1    # increment word index
+    j    dict_loop
+
+not_found:
+    li   $v0, 0
+    jr   $ra
 
 # Checks if a letter is in the word.
 #

@@ -262,38 +262,34 @@ answer: .word 0 # char* to dictionary
 
 .globl main
 main:
-#seed random generator
-    li $v0, 30        # get time syscall 
-    syscall           
-
-
-
-    move $t0, $a0     # save seed from a0 into t0
-
-    li   $a0, 0       # generator ID = 0
-    move $a1, $t0     # a1 = the seed we saved
-
-    li   $v0, 40      # syscall 40: set seed
+    # seed random generator
+    li $v0, 30 # get time syscall 
     syscall
 
+    move $t0, $a0 # save seed from a0 into t0
 
-	
+    li $a0, 0 # generator ID = 0
+    move $a1, $t0 # a1 = the seed we saved
+
+    li $v0, 40 # syscall 40: set seed
+    syscall
+
     # Load a random word into `answer`
-    li   $a0, 0                  # generator ID 0
-    li   $a1, ANSWER_DICTIONARY_LEN     # upper bound = 2315
-    li   $v0, 42                 # random int range syscall
-    syscall                      # v0 = random index
+    li $a0, 0 # generator ID 0
+    li $a1, ANSWER_DICTIONARY_LEN # upper bound = 2315
+    li $v0, 42 # random int range syscall
+    syscall # v0 = random index
 
     # index * 5 = byte offset
-    li   $t1, 5
-    mul  $t0, $a0, $t1
+    li $t1, 5
+    mul $t0, $a0, $t1
 
     # dictionary + offset = word pointer
-    la   $t1, answer_dictionary 
+    la $t1, answer_dictionary 
     addu $t0, $t1, $t0
 
     # save pointer
-    sw   $t0, answer
+    sw $t0, answer
 
     # Clear display by drawing an all white rectangle the size of the framebuffer
     li $a0, 0 # x
@@ -365,10 +361,11 @@ main:
             beqz $v0, input_loop
 
             # Score the current submission
-            addiu $sp, $sp, -8
+            addiu $sp, $sp, -12
             li $t0, 52 # x = 52
             sw $t0, 0($sp)
             sw $zero, 4($sp) # index = 0
+            sw $zero, 8($sp) # keep_playing = false
 
             check_loop:
                 la $a0, guess
@@ -376,28 +373,37 @@ main:
                 lw $a2, 4($sp) # index
                 jal check_letter
 
-                # Draw tile based on letter judgement check
-                lw $t0, 4($sp) # $t0 <- index
-                lbu $a0, guess($t0) # letter
-                lw $a1, 0($sp) # x
-                lw $a2, cursor_y # y
-                move $a3, $v0 # tile type
-                jal gfx_draw_tile
+                beq $v0, TILE_GREEN, skip_end_flag
+                li $t0, 1
+                sw $t0, 8($sp) # keep_playing = true
 
-                # x += 31
-                lw $t0, 0($sp)
-                addiu $t0, $t0, 31
-                sw $t0, 0($sp)
+                skip_end_flag:
+                    # Draw tile based on letter judgement check
+                    lw $t0, 4($sp) # $t0 <- index
+                    lbu $a0, guess($t0) # letter
+                    lw $a1, 0($sp) # x
+                    lw $a2, cursor_y # y
+                    move $a3, $v0 # tile type
+                    jal gfx_draw_tile
 
-                # index += 1
-                lw $t0, 4($sp)
-                addiu $t0, $t0, 1
-                sw $t0, 4($sp)
+                    # x += 31
+                    lw $t0, 0($sp)
+                    addiu $t0, $t0, 31
+                    sw $t0, 0($sp)
 
-                # Exit loop if we've completed the grade (index == 5)
-                bne $t0, 5, check_loop
+                    # index += 1
+                    lw $t0, 4($sp)
+                    addiu $t0, $t0, 1
+                    sw $t0, 4($sp)
 
-            addiu $sp, $sp, 8
+                    # Exit loop if we've completed the grade (index == 5)
+                    bne $t0, 5, check_loop
+
+            # End game if the word was guessed correctly
+            lw $t0, 8($sp)
+            beqz $t0, sys_exit # keep_playing == false?
+
+            addiu $sp, $sp, 12 # pop the stack
 
             # Exit the game if all guesses are exhausted
             lw $t0, cursor_y

@@ -373,11 +373,11 @@ main:
                 lw $a2, 4($sp) # index
                 jal check_letter
 
-                beq $v0, TILE_GREEN, skip_end_flag
+                beq $v0, TILE_GREEN, skip_keep_playing
                 li $t0, 1
                 sw $t0, 8($sp) # keep_playing = true
 
-                skip_end_flag:
+                skip_keep_playing:
                     # Draw tile based on letter judgement check
                     lw $t0, 4($sp) # $t0 <- index
                     lbu $a0, guess($t0) # letter

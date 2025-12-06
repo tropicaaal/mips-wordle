@@ -401,16 +401,16 @@ main:
 
             # End game if the word was guessed correctly
             lw $t0, 8($sp)
-            beqz $t0, sys_exit # keep_playing == false?
+            beqz $t0, show_win_screen # keep_playing == false?
 
             addiu $sp, $sp, 12 # pop the stack
 
             # Exit the game if all guesses are exhausted
             lw $t0, cursor_y
-            beq $t0, 191, sys_exit
-
+    	    beq  $t0, 191, show_lose_screen  # if we've reached the last row ? LOSE
+		
             # Move down one tile
-
+            
             # cursor_index = 0
             li $t0, 0
             sw $t0, cursor_index
@@ -910,3 +910,124 @@ gfx_draw_board:
     lw $ra, 0($sp)
     addiu $sp, $sp, 4
     jr $ra
+
+show_win_screen:
+
+    li $a0, 0 # x
+    li $a1, 0 # y
+    li $a2, FRAMEBUFFER_WIDTH # w
+    li $a3, FRAMEBUFFER_HEIGHT # h
+    addiu $sp, $sp, -20
+    li $t0, COLOR_WHITE # color (white)
+    sw $t0, 16($sp)
+    jal gfx_draw_rect
+    addiu $sp, $sp, 20
+    
+    li $a0, 'W' # draw a big green rectangle / tiles spelling “WIN”
+    li $a1, 10
+    li $a2, 10
+    li $a3, TILE_GREEN
+    jal gfx_draw_tile
+    
+    li $a0, 'I' # draw a big green rectangle / tiles spelling “WIN”
+    li $a1, 48 
+    li $a2, 10
+    li $a3, TILE_GREEN
+    jal gfx_draw_tile
+    
+    li $a0, 'N' # draw a big green rectangle / tiles spelling “WIN”
+    li $a1, 86
+    li $a2, 10
+    li $a3, TILE_GREEN
+    jal gfx_draw_tile
+    
+    # e.g., loop calling gfx_draw_tile for 'W', 'I', 'N'
+    
+    # --- Wait for ANY key press using your existing keyboard routine ---
+win_wait_for_key:
+    jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
+    beqz $v0, win_wait_for_key     # if it ever returns 0 / "no key", keep polling
+    # Got a key ? start a new round
+    
+    j    restart_round
+    
+    j sys_exit
+
+show_lose_screen:
+
+    li $a0, 0 # x
+    li $a1, 0 # y
+    li $a2, FRAMEBUFFER_WIDTH # w
+    li $a3, FRAMEBUFFER_HEIGHT # h
+    addiu $sp, $sp, -20
+    li $t0, COLOR_WHITE # color (white)
+    sw $t0, 16($sp)
+    jal gfx_draw_rect
+    addiu $sp, $sp, 20
+    
+    li $a0, 'L' # draw a red screen / tiles spelling “LOSE”
+    li $a1, 10 
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
+    
+    li $a0, 'O' # draw a red screen / tiles spelling “LOSE”
+    li $a1, 48 
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
+    
+    li $a0, 'S' # draw a red screen / tiles spelling “LOSE”
+    li $a1, 86
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
+    
+    li $a0, 'E' # draw a red screen / tiles spelling “LOSE”
+    li $a1, 124
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
+    
+    # --- Wait for ANY key press using your existing keyboard routine ---
+lose_wait_for_key:
+    jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
+    beqz $v0, lose_wait_for_key     # if it ever returns 0 / "no key", keep polling
+    
+    # Got a key ? start a new round
+    j    restart_round
+   
+    j sys_exit
+
+
+
+# Optional: constants for starting cursor position (adjust to match your board)
+# .eqv START_CURSOR_X 52
+# .eqv START_CURSOR_Y 52   # or whatever your first row Y actually is
+
+restart_round:
+    #### Reset game state for a fresh round ####
+
+    # Clear guess buffer (5 letters)
+    la   $t0, guess
+    li   $t1, 5
+clear_guess_loop:
+    sb   $zero, 0($t0)
+    addiu $t0, $t0, 1
+    addiu $t1, $t1, -1
+    bgtz $t1, clear_guess_loop
+
+    # Reset cursor index
+    li   $t0, 0
+    sw   $t0, cursor_index
+
+    # Reset cursor position (update these to match your actual start)
+    li   $t0, 52              # starting X for first tile row
+    sw   $t0, cursor_x
+
+    li   $t0, 36              # starting Y for first row (CHANGE if needed)
+    sw   $t0, cursor_y
+
+    # Now just jump back into your setup logic
+    j    main                 # re-seed RNG, pick a new word, redraw board
+    

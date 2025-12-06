@@ -965,26 +965,32 @@ show_lose_screen:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
     
-    li $a0, 'L' # draw a red screen / tiles spelling “LOSE”
+    li $a0, 'L' # draw a red screen / tiles spelling “LOSER”
     li $a1, 10 
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'O' # draw a red screen / tiles spelling “LOSE”
+    li $a0, 'O' # draw a red screen / tiles spelling “LOSER”
     li $a1, 48 
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'S' # draw a red screen / tiles spelling “LOSE”
+    li $a0, 'S' # draw a red screen / tiles spelling “LOSER”
     li $a1, 86
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'E' # draw a red screen / tiles spelling “LOSE”
+    li $a0, 'E' # draw a red screen / tiles spelling “LOSER”
     li $a1, 124
+    li $a2, 10
+    li $a3, TILE_YELLOW
+    jal gfx_draw_tile
+    
+    li $a0, 'R' # draw a red screen / tiles spelling “LOSER”
+    li $a1, 162
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile

@@ -943,6 +943,14 @@ show_win_screen:
     
     # e.g., loop calling gfx_draw_tile for 'W', 'I', 'N'
     
+    # --- Wait for ANY key press using your existing keyboard routine ---
+win_wait_for_key:
+    jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
+    beqz $v0, win_wait_for_key     # if it ever returns 0 / "no key", keep polling
+    # Got a key ? start a new round
+    
+    j    restart_round
+    
     j sys_exit
 
 show_lose_screen:
@@ -981,5 +989,45 @@ show_lose_screen:
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
+    # --- Wait for ANY key press using your existing keyboard routine ---
+lose_wait_for_key:
+    jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
+    beqz $v0, lose_wait_for_key     # if it ever returns 0 / "no key", keep polling
+    
+    # Got a key ? start a new round
+    j    restart_round
+   
     j sys_exit
 
+
+
+# Optional: constants for starting cursor position (adjust to match your board)
+# .eqv START_CURSOR_X 52
+# .eqv START_CURSOR_Y 52   # or whatever your first row Y actually is
+
+restart_round:
+    #### Reset game state for a fresh round ####
+
+    # Clear guess buffer (5 letters)
+    la   $t0, guess
+    li   $t1, 5
+clear_guess_loop:
+    sb   $zero, 0($t0)
+    addiu $t0, $t0, 1
+    addiu $t1, $t1, -1
+    bgtz $t1, clear_guess_loop
+
+    # Reset cursor index
+    li   $t0, 0
+    sw   $t0, cursor_index
+
+    # Reset cursor position (update these to match your actual start)
+    li   $t0, 52              # starting X for first tile row
+    sw   $t0, cursor_x
+
+    li   $t0, 36              # starting Y for first row (CHANGE if needed)
+    sw   $t0, cursor_y
+
+    # Now just jump back into your setup logic
+    j    main                 # re-seed RNG, pick a new word, redraw board
+    

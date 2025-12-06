@@ -499,7 +499,7 @@ dictionary_contains_word:
         compare_chars:
             lbu $t4, guess($t3) # guess[i]
             lbu $t5, 0($t0) # dict[i]
-            bne $t4, $t5, next_word # mismatch → try next word
+            bne $t4, $t5, next_word # mismatch â try next word
 
             addiu $t0, $t0, 1 # advance dict pointer
             addiu $t3, $t3, 1
@@ -605,8 +605,8 @@ to_ascii_uppercase:
 # Usage:
 #   gfx_draw_rect(x, y, width, height, color)
 gfx_draw_rect:
-    beq $a2, $zero, rect_rtn # zero width → nothing to draw
-    beq $a3, $zero, rect_rtn # zero height → nothing to draw
+    beq $a2, $zero, rect_rtn # zero width â nothing to draw
+    beq $a3, $zero, rect_rtn # zero height â nothing to draw
 
     lw $t0, 16($sp) # load color argument from the stack
 
@@ -696,7 +696,7 @@ gfx_draw_char:
         bit_loop:
             beqz $t5, next_row
 
-            # Extract MSB (bit 15). If set → draw pixel
+            # Extract MSB (bit 15). If set â draw pixel
             andi $t6, $t3, 0x8000
             beq $t6, $zero, next_bit # don't draw pixel if bit is not set
 
@@ -923,19 +923,19 @@ show_win_screen:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
     
-    li $a0, 'W' # draw a big green rectangle / tiles spelling �WIN�
+    li $a0, 'W' # draw a big green rectangle / tiles spelling WIN
     li $a1, 81
     li $a2, 10
     li $a3, TILE_GREEN
     jal gfx_draw_tile
     
-    li $a0, 'I' # draw a big green rectangle / tiles spelling �WIN�
+    li $a0, 'I' # draw a big green rectangle / tiles spelling WIN
     li $a1, 112 
     li $a2, 10
     li $a3, TILE_GREEN
     jal gfx_draw_tile
     
-    li $a0, 'N' # draw a big green rectangle / tiles spelling �WIN�
+    li $a0, 'N' # draw a big green rectangle / tiles spelling WIN
     li $a1, 143
     li $a2, 10
     li $a3, TILE_GREEN
@@ -965,31 +965,31 @@ show_lose_screen:
     jal gfx_draw_rect
     addiu $sp, $sp, 20
     
-    li $a0, 'L' # draw a red screen / tiles spelling �LOSER�
+    li $a0, 'L' # draw a red screen / tiles spelling LOSER
     li $a1, 50 
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'O' # draw a red screen / tiles spelling �LOSER�
+    li $a0, 'O' # draw a red screen / tiles spelling LOSER
     li $a1, 81
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'S' # draw a red screen / tiles spelling �LOSER�
+    li $a0, 'S' # draw a red screen / tiles spelling LOSER
     li $a1, 112
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'E' # draw a red screen / tiles spelling �LOSER�
+    li $a0, 'E' # draw a red screen / tiles spelling LOSER
     li $a1, 143
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
-    li $a0, 'R' # draw a red screen / tiles spelling �LOSER�
+    li $a0, 'R' # draw a red screen / tiles spelling LOSER
     li $a1, 174
     li $a2, 10
     li $a3, TILE_YELLOW
@@ -1003,14 +1003,16 @@ show_lose_screen:
     subu $t1, $t1, $t2           # width - 155
     sra  $t1, $t1, 1             # /2 => centered X
 
-    addiu $sp, $sp, -4
+    addiu $sp, $sp, -8
     sw   $t1, 0($sp)             # store center_x
 
     # Y position for the answer row
     li   $t3, 100                # adjust if you want higher/lower
-
+    sw   $t3, 4($sp)
+	
     # ----- Letter 0 -----
     lw   $t1, 0($sp)             # center_x
+    lw   $t3, 4($sp)
     lw   $t0, answer             # pointer to answer
     lbu  $a0, 0($t0)             # answer[0]
     move $a1, $t1                # x = center_x
@@ -1021,6 +1023,7 @@ show_lose_screen:
     # ----- Letter 1 -----
     lw   $t1, 0($sp)
     lw   $t0, answer
+    lw   $t3, 4($sp)
     lbu  $a0, 1($t0)             # answer[1]
     addiu $a1, $t1, 31           # x = center_x + 31
     move  $a2, $t3
@@ -1030,6 +1033,7 @@ show_lose_screen:
     # ----- Letter 2 -----
     lw   $t1, 0($sp)
     lw   $t0, answer
+    lw   $t3, 4($sp)
     lbu  $a0, 2($t0)             # answer[2]
     addiu $a1, $t1, 62           # x = center_x + 62
     move  $a2, $t3
@@ -1039,6 +1043,7 @@ show_lose_screen:
     # ----- Letter 3 -----
     lw   $t1, 0($sp)
     lw   $t0, answer
+    lw   $t3, 4($sp)
     lbu  $a0, 3($t0)             # answer[3]
     addiu $a1, $t1, 93           # x = center_x + 93
     move  $a2, $t3
@@ -1048,6 +1053,7 @@ show_lose_screen:
     # ----- Letter 4 -----
     lw   $t1, 0($sp)
     lw   $t0, answer
+    lw   $t3, 4($sp)
     lbu  $a0, 4($t0)             # answer[4]
     addiu $a1, $t1, 124          # x = center_x + 124
     move  $a2, $t3
@@ -1055,7 +1061,7 @@ show_lose_screen:
     jal   gfx_draw_tile
 
     # Pop center_x off stack
-    addiu $sp, $sp, 4
+    addiu $sp, $sp, 8
 
     # --- Wait for ANY key press using your existing keyboard routine ---
 lose_wait_for_key:

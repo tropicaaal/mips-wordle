@@ -924,26 +924,26 @@ show_win_screen:
     addiu $sp, $sp, 20
     
     li $a0, 'W' # draw a big green rectangle / tiles spelling “WIN”
-    li $a1, 10
+    li $a1, 81
     li $a2, 10
     li $a3, TILE_GREEN
     jal gfx_draw_tile
     
     li $a0, 'I' # draw a big green rectangle / tiles spelling “WIN”
-    li $a1, 48 
+    li $a1, 112 
     li $a2, 10
     li $a3, TILE_GREEN
     jal gfx_draw_tile
     
     li $a0, 'N' # draw a big green rectangle / tiles spelling “WIN”
-    li $a1, 86
+    li $a1, 143
     li $a2, 10
     li $a3, TILE_GREEN
     jal gfx_draw_tile
     
     # e.g., loop calling gfx_draw_tile for 'W', 'I', 'N'
     
-    # --- Wait for ANY key press using your existing keyboard routine ---
+    # Wait for ANY key press using your existing keyboard routine #
 win_wait_for_key:
     jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
     beqz $v0, win_wait_for_key     # if it ever returns 0 / "no key", keep polling
@@ -951,7 +951,7 @@ win_wait_for_key:
     
     j    restart_round
     
-    j sys_exit
+    
 
 show_lose_screen:
 
@@ -966,35 +966,97 @@ show_lose_screen:
     addiu $sp, $sp, 20
     
     li $a0, 'L' # draw a red screen / tiles spelling “LOSER”
-    li $a1, 10 
+    li $a1, 50 
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
     li $a0, 'O' # draw a red screen / tiles spelling “LOSER”
-    li $a1, 48 
+    li $a1, 81
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
     li $a0, 'S' # draw a red screen / tiles spelling “LOSER”
-    li $a1, 86
+    li $a1, 112
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
     li $a0, 'E' # draw a red screen / tiles spelling “LOSER”
-    li $a1, 124
+    li $a1, 143
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
     li $a0, 'R' # draw a red screen / tiles spelling “LOSER”
-    li $a1, 162
+    li $a1, 174
     li $a2, 10
     li $a3, TILE_YELLOW
     jal gfx_draw_tile
     
+    # Centered green ANSWER row #
+
+    # Compute centered X once and stash it on the stack
+    li  $t1, FRAMEBUFFER_WIDTH   # e.g., 256
+    li  $t2, 155                 # 5 tiles * 31 px
+    subu $t1, $t1, $t2           # width - 155
+    sra  $t1, $t1, 1             # /2 => centered X
+
+    addiu $sp, $sp, -4
+    sw   $t1, 0($sp)             # store center_x
+
+    # Y position for the answer row
+    li   $t3, 100                # adjust if you want higher/lower
+
+    # ----- Letter 0 -----
+    lw   $t1, 0($sp)             # center_x
+    lw   $t0, answer             # pointer to answer
+    lbu  $a0, 0($t0)             # answer[0]
+    move $a1, $t1                # x = center_x
+    move $a2, $t3                # y
+    li   $a3, TILE_GREEN
+    jal  gfx_draw_tile
+
+    # ----- Letter 1 -----
+    lw   $t1, 0($sp)
+    lw   $t0, answer
+    lbu  $a0, 1($t0)             # answer[1]
+    addiu $a1, $t1, 31           # x = center_x + 31
+    move  $a2, $t3
+    li    $a3, TILE_GREEN
+    jal   gfx_draw_tile
+
+    # ----- Letter 2 -----
+    lw   $t1, 0($sp)
+    lw   $t0, answer
+    lbu  $a0, 2($t0)             # answer[2]
+    addiu $a1, $t1, 62           # x = center_x + 62
+    move  $a2, $t3
+    li    $a3, TILE_GREEN
+    jal   gfx_draw_tile
+
+    # ----- Letter 3 -----
+    lw   $t1, 0($sp)
+    lw   $t0, answer
+    lbu  $a0, 3($t0)             # answer[3]
+    addiu $a1, $t1, 93           # x = center_x + 93
+    move  $a2, $t3
+    li    $a3, TILE_GREEN
+    jal   gfx_draw_tile
+
+    # ----- Letter 4 -----
+    lw   $t1, 0($sp)
+    lw   $t0, answer
+    lbu  $a0, 4($t0)             # answer[4]
+    addiu $a1, $t1, 124          # x = center_x + 124
+    move  $a2, $t3
+    li    $a3, TILE_GREEN
+    jal   gfx_draw_tile
+
+    # Pop center_x off stack
+    addiu $sp, $sp, 4
+
     # --- Wait for ANY key press using your existing keyboard routine ---
 lose_wait_for_key:
     jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
@@ -1003,16 +1065,9 @@ lose_wait_for_key:
     # Got a key ? start a new round
     j    restart_round
    
-    j sys_exit
-
-
-
-# Optional: constants for starting cursor position (adjust to match your board)
-# .eqv START_CURSOR_X 52
-# .eqv START_CURSOR_Y 52   # or whatever your first row Y actually is
 
 restart_round:
-    #### Reset game state for a fresh round ####
+    # Reset game state for a fresh round #
 
     # Clear guess buffer (5 letters)
     la   $t0, guess

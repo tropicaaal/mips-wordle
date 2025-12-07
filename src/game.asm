@@ -297,7 +297,6 @@ main:
     addu $t0, $t1, $t0
 
     # save pointer
-    la $t0, answer_dictionary
     sw $t0, answer
 
     # Clear display by drawing an all white rectangle the size of the framebuffer

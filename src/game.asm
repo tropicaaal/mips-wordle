@@ -263,6 +263,8 @@ cursor_y: .word 36
 cursor_index: .word 0
 guess: .word 0:5
 answer: .word 0 # char* to dictionary
+answer_frequency_table: .byte 0:26
+scratch_answer_frequency_table: .byte 0:26
 
 # MARK: Main
 
@@ -293,13 +295,58 @@ main:
     mul $t0, $a0, $t1
 
     # dictionary + offset = word pointer
-    la $t1, answer_dictionary 
+    la $t1, answer_dictionary
     addu $t0, $t1, $t0
 
-    # save pointer
+    # save pointer to answer
     sw $t0, answer
 
-    # Clear display by drawing an all white rectangle the size of the framebuffer
+    compute_frequency_table:
+        la $t1, answer_frequency_table
+
+        # answer[0]
+        lbu $t2, 0($t0) # load ASCII character 0 from answer
+        addiu $t2, $t2, -65 # convert ASCII character to letter index (0..25)
+        addu $t2, $t2, $t1 # address = base + index
+        lbu $t3, ($t2) # answer_frequency_table[letter] += 1
+        addiu $t3, $t3, 1
+        sb $t3, ($t2)
+
+        # same deal for the next four...
+
+        # answer[1]
+        lbu $t2, 1($t0)
+        addiu $t2, $t2, -65
+        addu $t2, $t2, $t1
+        lbu $t3, ($t2)
+        addiu $t3, $t3, 1
+        sb $t3, ($t2)
+
+        # answer[2]
+        lbu $t2, 2($t0)
+        addiu $t2, $t2, -65
+        addu $t2, $t2, $t1
+        lbu $t3, ($t2)
+        addiu $t3, $t3, 1
+        sb $t3, ($t2)
+
+        # answer[3]
+        lbu $t2, 3($t0)
+        addiu $t2, $t2, -65
+        addu $t2, $t2, $t1
+        lbu $t3, ($t2)
+        addiu $t3, $t3, 1
+        sb $t3, ($t2)
+
+        # answer[4]
+        lbu $t2, 4($t0)
+        addiu $t2, $t2, -65
+        addu $t2, $t2, $t1
+        lbu $t3, ($t2)
+        addiu $t3, $t3, 1
+        sb $t3, ($t2)
+
+    # Clear display by drawing an all-white rectangle the size of the framebuffer
     li $a0, 0 # x
     li $a1, 0 # y
     li $a2, FRAMEBUFFER_WIDTH # w
@@ -375,10 +422,15 @@ main:
             sw $zero, 4($sp) # index = 0
             sw $zero, 8($sp) # keep_playing = false
 
+            # Copy our initial frequency table into the answer frequency table
+            la $a0, scratch_answer_frequency_table
+            la $a1, answer_frequency_table
+            la $a2, 26
+            jal memcpy
+
             check_loop:
-                la $a0, guess
-                lw $a1, answer
-                lw $a2, 4($sp) # index
+                lw $a1, 4($sp) # index
+                lbu $a0, guess($a1) # letter
                 jal check_letter
 
                 beq $v0, TILE_GREEN, skip_keep_playing
@@ -461,6 +513,49 @@ main:
 
 # MARK: Game Logic
 
+# Checks if a letter is in the selected answer.
+#
+# Arguments: 
+#   $a0: guess
+#   $a1: position
+#
+# Returns:
+#   TILE_GREEN: correct letter, correct position
+#   TILE_YELLOW: letter exists elsewhere in word
+#   TILE_GRAY: letter not in word
+#
+# Usage check_letter(letter, position)
+check_letter:
+    # reamining letter frequency in answer in $t0
+    addiu $t0, $a0, -65
+    lbu $t1, scratch_answer_frequency_table($t0)
+
+    # a1 = answer[position]
+    lw $t2, answer
+    addu $a1, $a1, $t2
+    lbu $a1, ($a1)
+
+    beq $a0, $a1, letter_correct_position # if equal, return TILE_COLOR_GREEN
+    beqz $t1, letter_not_found # if frequency == 0, the letter is nowhere else in the word
+
+    letter_found_elsewhere:
+        addiu $t1, $t1, -1 # Decrement frequency
+        sb $t1, scratch_answer_frequency_table($t0) # Store back
+        li $v0, TILE_YELLOW
+        jr $ra
+    letter_not_found:
+        li $v0, TILE_GRAY
+        jr $ra
+    letter_correct_position:
+        # Decrement frequency for correct position match
+        beqz $t1, skip_frequency_decrement # Skip if already 0
+        addiu $t1, $t1, -1 # Decrement frequency
+        sb $t1, scratch_answer_frequency_table($t0) # Store back
+
+        skip_frequency_decrement:
+            li $v0, TILE_GREEN
+            jr $ra
+
 game_win:
     li $a0, 0 # x
     li $a1, 0 # y
@@ -478,49 +573,48 @@ game_win:
     li $a3, COLOR_BLACK
     jal gfx_draw_string
     
-    # ----- Letter 0 -----
+    # answer[0]
     lw $a0, answer
-    lbu $a0, 0($a0) # answer[0]
+    lbu $a0, 0($a0)
     li $a1, 51 # x
     li $a2, 128 # y
     li $a3, TILE_GREEN
     jal gfx_draw_tile
 
-    # ----- Letter 1 -----
+    # answer[1]
     lw $a0, answer
-    lbu $a0, 1($a0) # answer[0]
+    lbu $a0, 1($a0)
     li $a1, 82 # x
     li $a2, 128 # y
     li $a3, TILE_GREEN
     jal gfx_draw_tile
 
-    # ----- Letter 2 -----
+    # answer[2]
     lw $a0, answer
-    lbu $a0, 2($a0) # answer[0]
+    lbu $a0, 2($a0)
     li $a1, 113 # x
     li $a2, 128 # y
     li $a3, TILE_GREEN
     jal gfx_draw_tile
 
-    # ----- Letter 3 -----
+    # answer[3]
     lw $a0, answer
-    lbu $a0, 3($a0) # answer[0]
+    lbu $a0, 3($a0)
     li $a1, 144 # x
     li $a2, 128 # y
     li $a3, TILE_GREEN
     jal gfx_draw_tile
 
-    # ----- Letter 4 -----
+    # answer[4]
     lw $a0, answer
-    lbu $a0, 4($a0) # answer[0]
+    lbu $a0, 4($a0)
     li $a1, 175 # x
     li $a2, 128 # y
     li $a3, TILE_GREEN
     jal gfx_draw_tile
-    
-    # Wait for ANY key press
-    jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
-    j    game_reset
+
+    li $v0, SYS_EXIT
+    syscall
 
 game_lose:
     li $a0, 0 # x
@@ -579,35 +673,8 @@ game_lose:
     li $a3, TILE_GUESS
     jal gfx_draw_tile
 
-    # Wait for ANY key press
-    jal  keyboard_poll_input   # returns key in $v0 (same as in input_loop)
-    j    game_reset
-
-game_reset:
-    # Reset game state for a fresh round #
-
-    # Clear guess buffer (5 letters)
-    la   $t0, guess
-    li   $t1, 5
-    clear_guess_loop:
-        sb   $zero, 0($t0)
-        addiu $t0, $t0, 1
-        addiu $t1, $t1, -1
-        bgtz $t1, clear_guess_loop
-
-    # Reset cursor index
-    li   $t0, 0
-    sw   $t0, cursor_index
-
-    # Reset cursor position (update these to match your actual start)
-    li   $t0, 52              # starting X for first tile row
-    sw   $t0, cursor_x
-
-    li   $t0, 36              # starting Y for first row (CHANGE if needed)
-    sw   $t0, cursor_y
-
-    # Now just jump back into your setup logic
-    j    main                 # re-seed RNG, pick a new word, redraw board
+    li $v0, SYS_EXIT
+    syscall
 
 # MARK: Input
 
@@ -654,54 +721,6 @@ dictionary_contains_word:
 
     not_found:
         li $v0, 0
-        jr $ra
-
-# Checks if a letter is in the word.
-#
-# Arguments: 
-#   $a0: guess
-#   $a1: answer
-#   $a2: position
-#
-# Returns:
-#   TILE_GREEN: correct letter, correct position
-#   TILE_YELLOW: letter exists elsewhere in word
-#   TILE_GRAY: letter not in word
-#
-# Usage check_letter(guess, answer, position)
-check_letter:
-    # load answer[position]
-    addu $t1, $a1, $a2  # t1 = answer + position
-    lbu $t2, ($t1)  # t2 = answer[position]
-
-    # load guess[position]
-    addu $t0, $a0, $a2  # t0 = guess + position
-    lbu $t3, ($t0) # t3 = guess[position]
-
-    # if equal, return TILE_COLOR_GREEN
-    beq $t3, $t2, letter_correct_position
-
-    # If not at correct position, scan entire word.
-    # Not bothering with a loop here, since words are fixed-length and unterminated.
-    lbu $t4, 0($a1)
-    beq $t4, $t3, letter_found_elsewhere
-    lbu $t4, 1($a1)
-    beq $t4, $t3, letter_found_elsewhere
-    lbu $t4, 2($a1)
-    beq $t4, $t3, letter_found_elsewhere
-    lbu $t4, 3($a1)
-    beq $t4, $t3, letter_found_elsewhere
-    lbu $t4, 4($a1)
-    beq $t4, $t3, letter_found_elsewhere
-
-    letter_not_found:
-        li $v0, TILE_GRAY
-        jr $ra
-    letter_found_elsewhere:
-        li $v0, TILE_YELLOW
-        jr $ra
-    letter_correct_position:
-        li $v0, TILE_GREEN
         jr $ra
 
 # Validates user input by converting the input character to uppercase, or returning 0 if the
@@ -1046,3 +1065,42 @@ gfx_draw_board:
     lw $ra, 0($sp)
     addiu $sp, $sp, 4
     jr $ra
+
+
+# MARK: libc shims
+
+memcpy:
+    move $v0, $a0 # Save original destination for return
+    beqz $a2, memcpy_done # If size is 0, nothing to copy
+    
+    # Check if we can do word-aligned copies (4 bytes at a time)
+    # Both src and dst must be word-aligned, and size >= 4
+    or $t0, $a0, $a1 # Check if either address has lower 2 bits set
+    andi $t0, $t0, 3
+    bnez $t0, memcpy_byte # If not aligned, do byte copy
+    
+    slti $t0, $a2, 4 # Check if size < 4
+    bnez $t0, memcpy_byte # If too small, do byte copy
+
+    memcpy_word:
+        # Copy 4 bytes at a time
+        lw $t1, 0($a1) # Load word from source
+        sw $t1, 0($a0) # Store word to destination
+        addiu $a0, $a0, 4 # Advance destination pointer
+        addiu $a1, $a1, 4 # Advance source pointer
+        addiu $a2, $a2, -4 # Decrement count by 4
+        slti $t0, $a2, 4 # Check if remaining bytes < 4
+        beqz $t0, memcpy_word # Continue word copy if >= 4 bytes left
+
+    memcpy_byte:
+        # Copy remaining bytes one at a time
+        beqz $a2, memcpy_done # If no bytes left, we're done
+        lb $t1, 0($a1) # Load byte from source
+        sb $t1, 0($a0) # Store byte to destination
+        addiu $a0, $a0, 1 # Advance destination pointer
+        addiu $a1, $a1, 1 # Advance source pointer
+        addiu $a2, $a2, -1 # Decrement count
+        j memcpy_byte # Continue byte copy
+
+    memcpy_done:
+        jr $ra # Return to caller

@@ -569,6 +569,9 @@ main:
 
 # MARK: Game Logic
 
+# Ends the game with the scenario that the user won.
+#
+# This function takes no arguments and does not return.
 game_win:
     li $a0, 0 # x
     li $a1, 0 # y
@@ -629,6 +632,9 @@ game_win:
     li $v0, SYS_EXIT
     syscall
 
+# Ends the game with the scenario that the user lost.
+#
+# This function takes no arguments and does not return.
 game_lose:
     li $a0, 0 # x
     li $a1, 0 # y

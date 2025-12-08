@@ -1083,37 +1083,41 @@ gfx_draw_board:
 # MARK: libc shims
 
 memcpy:
-    move $v0, $a0 # Save original destination for return
-    beqz $a2, memcpy_rtn # If size is 0, nothing to copy
+    move $v0, $a0 # return the desination pointer
+    beqz $a2, memcpy_rtn # nothing to copy if count == 0
     
-    # Check if we can do word-aligned copies (4 bytes at a time)
-    # Both src and dst must be word-aligned, and size >= 4
-    or $t0, $a0, $a1 # Check if either address has lower 2 bits set
-    andi $t0, $t0, 3
-    bnez $t0, memcpy_byte # If not aligned, do byte copy
+    # Check if we can do word-aligned copies.
+    # dest and src must be 4-byte aligned, so they must both have their lowest 2 bits cleared
+    or $t0, $a0, $a1 # temp = dest | src
+    andi $t0, $t0, 3 # temp & 0b11
+    bnez $t0, memcpy_byte # not aligned to a word boundary, so do a byte copy
     
-    slti $t0, $a2, 4 # Check if size < 4
-    bnez $t0, memcpy_byte # If too small, do byte copy
+    # if size < 4, we do a byte copy
+    slti $t0, $a2, 4
+    bnez $t0, memcpy_byte
 
     # Copy 4 bytes at a time
     memcpy_word:
-        lw $t1, 0($a1) # Load word from src
-        sw $t1, 0($a0) # Store word to dest
-        addiu $a0, $a0, 4 # Advance destination pointer
-        addiu $a1, $a1, 4 # Advance source pointer
-        addiu $a2, $a2, -4 # Decrement count by 4
-        slti $t0, $a2, 4 # Check if remaining bytes < 4
-        beqz $t0, memcpy_word # Continue word copy if >= 4 bytes left
+        lw $t1, 0($a1) # src <- $t1
+        sw $t1, 0($a0) # $t1 -> dest
+        addiu $a0, $a0, 4 # dest++
+        addiu $a1, $a1, 4 # src++
+        addiu $a2, $a2, -4 # count--
+        
+        slti $t0, $a2, 4
+        beqz $t0, memcpy_word
 
     # Copy remaining bytes one at a time
     memcpy_byte:
-        beqz $a2, memcpy_rtn # If no bytes left, we're done
-        lb $t1, 0($a1) # Load byte from source
-        sb $t1, 0($a0) # Store byte to destination
-        addiu $a0, $a0, 1 # Advance destination pointer
-        addiu $a1, $a1, 1 # Advance source pointer
-        addiu $a2, $a2, -1 # Decrement count
-        j memcpy_byte # Continue byte copy
+        beqz $a2, memcpy_rtn
+
+        lb $t1, 0($a1) # src <- $t1
+        sb $t1, 0($a0) # $t1 -> dest
+        addiu $a0, $a0, 1 # dest++
+        addiu $a1, $a1, 1 # src++
+        addiu $a2, $a2, -1 # count--
+        
+        j memcpy_byte
 
     memcpy_rtn:
         jr $ra

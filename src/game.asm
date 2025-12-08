@@ -21,6 +21,7 @@
 .eqv SYS_PRINT_CHAR 11
 .eqv SYS_EXIT 10
 .eqv SYS_RAND_RANGE 42
+.eqv SYS_RAND_SEED 40
 
 # MMIO
 .eqv KEYBOARD_RX_CONTROL_REG 0xFFFF0000
@@ -281,7 +282,7 @@ main:
     li $a0, 0 # generator ID = 0
     move $a1, $t0 # a1 = the seed we saved
 
-    li $v0, 40 # syscall 40: set seed
+    li $v0, SYS_RAND_SEED # syscall 40: set seed
     syscall
 
     # Load a random word into `answer`
@@ -305,7 +306,7 @@ main:
         la $t1, answer_frequency_table
 
         # answer[0]
-        lbu $t2, 0($t0) # load ASCII character 0 from answer
+        lbu $t2, 0($t0) # load first ASCII character from answer
         addiu $t2, $t2, -65 # convert ASCII character to letter index (0..25)
         addu $t2, $t2, $t1 # address = base + index
         lbu $t3, ($t2) # answer_frequency_table[letter] += 1
@@ -428,10 +429,10 @@ main:
             la $a2, 26
             jal memcpy
 
-            check_loop:
+            judgement_loop:
                 lw $a1, 4($sp) # index
                 lbu $a0, guess($a1) # letter
-                jal check_letter
+                jal judge_letter
 
                 beq $v0, TILE_GREEN, skip_keep_playing
                 li $t0, 1
@@ -457,7 +458,7 @@ main:
                     sw $t0, 4($sp)
 
                     # Exit loop if we've completed the grade (index == 5)
-                    bne $t0, 5, check_loop
+                    bne $t0, 5, judgement_loop
 
             # End game if the word was guessed correctly
             lw $t0, 8($sp)
@@ -513,7 +514,7 @@ main:
 
 # MARK: Game Logic
 
-# Checks if a letter is in the selected answer.
+# Determines the color of a tile in a guess.
 #
 # Arguments: 
 #   $a0: guess
@@ -525,7 +526,7 @@ main:
 #   TILE_GRAY: letter not in word
 #
 # Usage check_letter(letter, position)
-check_letter:
+judge_letter:
     # reamining letter frequency in answer in $t0
     addiu $t0, $a0, -65
     lbu $t1, scratch_answer_frequency_table($t0)
@@ -1071,7 +1072,7 @@ gfx_draw_board:
 
 memcpy:
     move $v0, $a0 # Save original destination for return
-    beqz $a2, memcpy_done # If size is 0, nothing to copy
+    beqz $a2, memcpy_rtn # If size is 0, nothing to copy
     
     # Check if we can do word-aligned copies (4 bytes at a time)
     # Both src and dst must be word-aligned, and size >= 4
@@ -1082,19 +1083,19 @@ memcpy:
     slti $t0, $a2, 4 # Check if size < 4
     bnez $t0, memcpy_byte # If too small, do byte copy
 
+    # Copy 4 bytes at a time
     memcpy_word:
-        # Copy 4 bytes at a time
-        lw $t1, 0($a1) # Load word from source
-        sw $t1, 0($a0) # Store word to destination
+        lw $t1, 0($a1) # Load word from src
+        sw $t1, 0($a0) # Store word to dest
         addiu $a0, $a0, 4 # Advance destination pointer
         addiu $a1, $a1, 4 # Advance source pointer
         addiu $a2, $a2, -4 # Decrement count by 4
         slti $t0, $a2, 4 # Check if remaining bytes < 4
         beqz $t0, memcpy_word # Continue word copy if >= 4 bytes left
 
+    # Copy remaining bytes one at a time
     memcpy_byte:
-        # Copy remaining bytes one at a time
-        beqz $a2, memcpy_done # If no bytes left, we're done
+        beqz $a2, memcpy_rtn # If no bytes left, we're done
         lb $t1, 0($a1) # Load byte from source
         sb $t1, 0($a0) # Store byte to destination
         addiu $a0, $a0, 1 # Advance destination pointer
@@ -1102,5 +1103,5 @@ memcpy:
         addiu $a2, $a2, -1 # Decrement count
         j memcpy_byte # Continue byte copy
 
-    memcpy_done:
-        jr $ra # Return to caller
+    memcpy_rtn:
+        jr $ra

@@ -265,7 +265,7 @@ cursor_index: .word 0
 guess: .word 0:5
 answer: .word 0 # char* to dictionary
 answer_frequency_table: .byte 0:26
-scratch_answer_frequency_table: .byte 0:26
+judgement_frequency_table: .byte 0:26
 
 # MARK: Main
 
@@ -416,60 +416,115 @@ main:
             jal dictionary_contains_word
             beqz $v0, input_loop
 
-            # Score the current submission
-            addiu $sp, $sp, -12
-            li $t0, 52 # x = 52
-            sw $t0, 0($sp)
-            sw $zero, 4($sp) # index = 0
-            sw $zero, 8($sp) # keep_playing = false
-
             # Copy our initial frequency table into the answer frequency table
-            la $a0, scratch_answer_frequency_table
+            la $a0, judgement_frequency_table
             la $a1, answer_frequency_table
             la $a2, 26
             jal memcpy
 
-            judgement_loop:
-                lw $a1, 4($sp) # index
-                lbu $a0, guess($a1) # letter
-                jal judge_letter
+            addiu $sp, $sp, -20
+            # $sp[0..4] is reserved for green pass results
+            li $t0, 52
+            sw $t0, 8($sp) # x = 52
+            sw $zero, 12($sp) # index = 0
+            li $t0, 1
+            sw $t0, 16($sp) # game_won = true (always starts as true, set to false if yellow or gray tiles are encoutnered)
+            
+            # judgement pass 1: mark all the greens
+            li $t0, 0 # i = 0
+            green_pass:
+                lbu $a0, guess($t0) # $a0 = guess[i]
+                
+                # $t1 = answer[i]
+                lw $t1, answer
+                addu $t1, $t0, $t1
+                lbu $t1, ($t1)
+                
+                bne $a0, $t1, not_green # if guess[i] != answer[i], then defer to yellow pass
+                 
+                # Tile is green, so decrement frequency.
+                addiu $t2, $a0, -65
+                lbu $t3, judgement_frequency_table($t2)
+                beqz $t3, frequency_already_zero
+                addiu $t3, $t3, -1
+                sb $t3, judgement_frequency_table($t2)
+                
+                frequency_already_zero:
+                    li $t2, TILE_GREEN
+                    j store_green_pass_result
+                
+                not_green:
+                    # Not an exact position match if guess[i] != answer[i], so we defer to the
+                    # yellow pass to decide if we're yellow or gray.
+                    li $t2, TILE_GRAY
+                
+                store_green_pass_result:
+                    # Store pass 1 result at $sp[0..4]
+                    addu $t1, $sp, $t0
+                    sb $t2, ($t1)
+                    
+                    # index += 1
+                    addiu $t0, $t0, 1
+                    
+                    bne $t0, 5, green_pass
+            
+            # judgement pass 2: mark all the yellows
+            li $t0, 0 # i = 0
+            yellow_pass:
+                # Load pass 1 result
+                addu $t1, $sp, $t0
+                lbu $a3, ($t1) # Load pass 1 result into a3
+                
+                # The tile is either yellow or gray
+                lbu $a0, guess($t0) # letter
 
-                beq $v0, TILE_GREEN, skip_keep_playing
-                li $t0, 1
-                sw $t0, 8($sp) # keep_playing = true
+                # If we're already green, skip to final judgement
+                beq $a3, TILE_GREEN, draw_judgement
+                
+                # Check and decrement remaining letter frequency
+                addiu $t1, $a0, -65
+                lbu $t2, judgement_frequency_table($t1)
+                sw $zero, 16($sp) # game_won = false
+                beqz $t2, draw_judgement # no remaining instances of this letter in the word, tile is gray
+                addiu $t2, $t2, -1
+                sb $t2, judgement_frequency_table($t1)
 
-                skip_keep_playing:
+                # There is at least one remaining instance of this letter in the word, tile is yellow
+                li $a3, TILE_YELLOW
+                sw $zero, 16($sp) # game_won = false
+                
+                draw_judgement:
+                    # save index
+                    sw $t0, 12($sp)
+
                     # Draw tile based on letter judgement check
-                    lw $t0, 4($sp) # $t0 <- index
-                    lbu $a0, guess($t0) # letter
-                    lw $a1, 0($sp) # x
+                    # NOTE: $a3 and $a0 already loaded
+                    lw $a1, 8($sp) # x
                     lw $a2, cursor_y # y
-                    move $a3, $v0 # tile type
                     jal gfx_draw_tile
 
                     # x += 31
-                    lw $t0, 0($sp)
-                    addiu $t0, $t0, 31
-                    sw $t0, 0($sp)
+                    lw $t1, 8($sp)
+                    addiu $t1, $t1, 31
+                    sw $t1, 8($sp)
 
-                    # index += 1
-                    lw $t0, 4($sp)
-                    addiu $t0, $t0, 1
-                    sw $t0, 4($sp)
+                    lw $t0, 12($sp) # Restore index
+                    addiu $t0, $t0, 1 # index += 1
 
                     # Exit loop if we've completed the grade (index == 5)
-                    bne $t0, 5, judgement_loop
+                    bne $t0, 5, yellow_pass
 
             # End game if the word was guessed correctly
-            lw $t0, 8($sp)
-            beqz $t0, game_win # keep_playing == false?
+            lw $t0, 16($sp)
+            bgtz $t0, game_win # game_won == true?
 
-            addiu $sp, $sp, 12 # pop the stack
+            # Pop the stack
+            addiu $sp, $sp, 20
 
             # Exit the game if all guesses are exhausted
             lw $t0, cursor_y
-    	    beq  $t0, 191, game_lose  # if we've reached the last row ? LOSE
-		
+    	    beq $t0, 191, game_lose  # if we've reached the last row ? LOSE
+
             # Move down one tile
             
             # cursor_index = 0
@@ -513,49 +568,6 @@ main:
             j input_loop # next input
 
 # MARK: Game Logic
-
-# Determines the color of a tile in a guess.
-#
-# Arguments: 
-#   $a0: guess
-#   $a1: position
-#
-# Returns:
-#   TILE_GREEN: correct letter, correct position
-#   TILE_YELLOW: letter exists elsewhere in word
-#   TILE_GRAY: letter not in word
-#
-# Usage check_letter(letter, position)
-judge_letter:
-    # reamining letter frequency in answer in $t0
-    addiu $t0, $a0, -65
-    lbu $t1, scratch_answer_frequency_table($t0)
-
-    # a1 = answer[position]
-    lw $t2, answer
-    addu $a1, $a1, $t2
-    lbu $a1, ($a1)
-
-    beq $a0, $a1, letter_correct_position # if equal, return TILE_COLOR_GREEN
-    beqz $t1, letter_not_found # if frequency == 0, the letter is nowhere else in the word
-
-    letter_found_elsewhere:
-        addiu $t1, $t1, -1 # Decrement frequency
-        sb $t1, scratch_answer_frequency_table($t0) # Store back
-        li $v0, TILE_YELLOW
-        jr $ra
-    letter_not_found:
-        li $v0, TILE_GRAY
-        jr $ra
-    letter_correct_position:
-        # Decrement frequency for correct position match
-        beqz $t1, skip_frequency_decrement # Skip if already 0
-        addiu $t1, $t1, -1 # Decrement frequency
-        sb $t1, scratch_answer_frequency_table($t0) # Store back
-
-        skip_frequency_decrement:
-            li $v0, TILE_GREEN
-            jr $ra
 
 game_win:
     li $a0, 0 # x
